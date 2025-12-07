@@ -30,7 +30,7 @@ class AssemblyApp:
         self.current_box = 1
         self.shipment_info = ""
         self.input_file_path = ""
-        self.output_directory = str(Path.home() / "Download")  # Default to Downloads folder
+        self.output_directory = str(Path.home() / "Downloads")  # Default to Downloads folder
 
         # --- UI Components ---
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
@@ -120,6 +120,8 @@ class AssemblyApp:
             ]
             
             self.input_file_path = filepath
+            # Set default output directory to same folder as input file
+            self.output_directory = str(Path(filepath).parent)
             self.current_item_index = 0
             self.current_box = 1
             

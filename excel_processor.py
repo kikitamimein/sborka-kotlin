@@ -204,9 +204,14 @@ class ExcelWriter:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
         output_filename = self.original_file_path.stem + f"_сборка_{timestamp}.xlsx"
         
-        # Создаем папку если не существует
-        self.output_directory.mkdir(parents=True, exist_ok=True)
-        output_path = self.output_directory / output_filename
-        
-        wb.save(output_path)
-        return str(output_path)
+        try:
+            # Создаем папку если не существует
+            self.output_directory.mkdir(parents=True, exist_ok=True)
+            output_path = self.output_directory / output_filename
+            
+            wb.save(output_path)
+            return str(output_path)
+        except PermissionError as e:
+            raise ValueError(f"Нет доступа к папке: {self.output_directory}")
+        except Exception as e:
+            raise ValueError(f"Ошибка сохранения файла: {e}")
