@@ -32,8 +32,11 @@ jobs:
       run: |
         flet build apk --verbose --module-name flet_app
 
+    - name: List build directory
+      run: ls -R build
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
-        path: build/app/outputs/flutter-apk/app-release.apk
+        path: build/apk/app-release.apk
