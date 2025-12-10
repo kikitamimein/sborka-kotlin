@@ -30,7 +30,7 @@ jobs:
 
     - name: Build APK
       run: |
-        flet build apk --verbose --module-name flet_app --android-intent-filters android_intent_filters.json
+        flet build apk --verbose --module-name flet_app
 
     - name: List build directory
       run: ls -R build

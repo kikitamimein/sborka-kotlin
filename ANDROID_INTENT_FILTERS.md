@@ -1,69 +1,73 @@
-# Android Intent Filters Configuration
+# Настройка Intent Filters для Flet (Альтернативный метод)
 
-Для того чтобы приложение появлялось в списке "Открыть с помощью" для Excel файлов, необходимо настроить Intent Filters в Android манифесте.
+## Проблема
 
-## Конфигурация для Flet
+Параметр `--android-intent-filters` не поддерживается в Flet 0.28.3.
 
-При сборке APK через `flet build apk`, добавьте следующие параметры:
+## Решение: Ручная настройка после сборки
 
+Для добавления Intent Filters в уже собранный APK нужно:
+
+### Вариант 1: Обновить Flet (когда появится поддержка)
+
+Следите за обновлениями Flet: https://github.com/flet-dev/flet/releases
+
+### Вариант 2: Ручное редактирование AndroidManifest.xml
+
+1. Распакуйте APK:
 ```bash
-flet build apk \
-  --android-intent-filters android_intent_filters.json
+apktool d app-release.apk
 ```
 
-## Файл android_intent_filters.json
-
-Создайте файл `android_intent_filters.json` в корне проекта со следующим содержимым:
-
-```json
-[
-  {
-    "action": "android.intent.action.VIEW",
-    "category": [
-      "android.intent.category.DEFAULT",
-      "android.intent.category.BROWSABLE"
-    ],
-    "data": [
-      {
-        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      },
-      {
-        "mimeType": "application/vnd.ms-excel"
-      }
-    ]
-  },
-  {
-    "action": "android.intent.action.SEND",
-    "category": [
-      "android.intent.category.DEFAULT"
-    ],
-    "data": [
-      {
-        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      },
-      {
-        "mimeType": "application/vnd.ms-excel"
-      }
-    ]
-  }
-]
+2. Отредактируйте `AndroidManifest.xml`, добавив в `<activity>`:
+```xml
+<intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+    <data android:mimeType="application/vnd.ms-excel" />
+</intent-filter>
 ```
 
-## Обработка входящих файлов
-
-Добавьте в начало функции `main()` в `flet_app.py`:
-
-```python
-def main(page: ft.Page):
-    # Handle incoming files from intent
-    if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-        # Get file path from intent if available
-        # This will be implemented when Flet adds support for intent data
-        pass
-    
-    app = AssemblyApp(page)
+3. Пересоберите APK:
+```bash
+apktool b app-release.apk -o app-modified.apk
 ```
 
-## Примечание
+4. Подпишите APK:
+```bash
+jarsigner -keystore your-keystore.jks app-modified.apk your-alias
+```
 
-На данный момент (декабрь 2024) Flet может иметь ограниченную поддержку для получения данных из Intent. Проверьте актуальную документацию Flet для получения информации о работе с Intent Filters.
+### Вариант 3: Использовать Flutter напрямую
+
+Если нужны Intent Filters, можно собрать приложение через Flutter:
+
+1. Экспортируйте Flutter проект:
+```bash
+flet build apk --export-only
+```
+
+2. Отредактируйте `android/app/src/main/AndroidManifest.xml`
+
+3. Соберите через Flutter:
+```bash
+cd build/flutter
+flutter build apk
+```
+
+## Текущее состояние
+
+На данный момент APK собирается **без Intent Filters**. Все остальные функции работают:
+- ✅ Поддержка .xls файлов
+- ✅ Автосохранение сессии
+- ✅ Функция "Поделиться" (page.share)
+- ✅ Промежуточная генерация файлов
+- ❌ Открытие через "Открыть с помощью" (требует Intent Filters)
+
+## Рекомендация
+
+Используйте приложение как есть. Файлы можно:
+- Открывать через встроенный файловый менеджер приложения
+- Делиться через кнопку "Поделиться файлом" после завершения сборки
