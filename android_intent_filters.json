@@ -1,0 +1,31 @@
+[
+    {
+        "action": "android.intent.action.VIEW",
+        "category": [
+            "android.intent.category.DEFAULT",
+            "android.intent.category.BROWSABLE"
+        ],
+        "data": [
+            {
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            },
+            {
+                "mimeType": "application/vnd.ms-excel"
+            }
+        ]
+    },
+    {
+        "action": "android.intent.action.SEND",
+        "category": [
+            "android.intent.category.DEFAULT"
+        ],
+        "data": [
+            {
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            },
+            {
+                "mimeType": "application/vnd.ms-excel"
+            }
+        ]
+    }
+]

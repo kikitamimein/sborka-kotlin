@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 import pandas as pd
 import openpyxl
+import xlrd
 from openpyxl.styles import Alignment
 from collections import defaultdict
 from datetime import datetime
@@ -32,11 +33,15 @@ class ExcelProcessor:
         """Загружает данные из Excel-файла в DataFrame."""
         if self.df is None:
             try:
+                # Определяем формат файла по расширению
+                file_ext = self.file_path.suffix.lower()
+                engine = 'xlrd' if file_ext == '.xls' else 'openpyxl'
+                
                 self.df = pd.read_excel(
                     self.file_path,
                     header=4, # Строка 5 (индекс 4)
                     dtype=str,
-                    engine='openpyxl'
+                    engine=engine
                 )
             except Exception as e:
                 raise ValueError(f"Не удалось прочитать файл Excel: {e}")
@@ -45,12 +50,16 @@ class ExcelProcessor:
         """Извлекает номер и дату отгрузки из первой строки."""
         # Читаем первую строку отдельно, так как основной df теперь с header=3
         try:
+            # Определяем формат файла по расширению
+            file_ext = self.file_path.suffix.lower()
+            engine = 'xlrd' if file_ext == '.xls' else 'openpyxl'
+            
             temp_df = pd.read_excel(
                 self.file_path,
                 header=None,
                 nrows=1,
                 dtype=str,
-                engine='openpyxl'
+                engine=engine
             )
         except Exception:
              return {

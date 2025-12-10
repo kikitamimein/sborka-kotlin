@@ -3,6 +3,7 @@ import flet as ft
 from excel_processor import ExcelProcessor, ExcelWriter
 import pickle
 from pathlib import Path
+import os
 
 class AssemblyApp:
     def __init__(self, page: ft.Page):
@@ -31,6 +32,7 @@ class AssemblyApp:
         self.shipment_info = ""
         self.input_file_path = ""
         self.output_directory = ""  # Will be set by user selection
+        self.autosave_path = Path.home() / ".offline_assembler_autosave.assm-save"
         self.output_file_path = ""  # Store the final output file path for sharing
 
         # --- UI Components ---
@@ -43,7 +45,11 @@ class AssemblyApp:
         self.folder_picker = ft.FilePicker(on_result=self.on_folder_picked)
         self.page.overlay.append(self.folder_picker)
 
-        self.init_ui()
+        # Try to load autosave on startup
+        self.try_load_autosave()
+        
+        if not self.assembly_items:
+            self.init_ui()
 
     def init_ui(self):
         self.page.clean()
@@ -159,14 +165,33 @@ class AssemblyApp:
 
     def build_assembly_ui(self):
         # --- Top Bar ---
-        self.progress_text = ft.Text("Позиция 0 из 0", size=14, color=self.COLOR_TEXT_SEC)
+        self.progress_text = ft.Text(
+            "Позиция 0 из 0", 
+            size=16,  # Increased from 14
+            weight=ft.FontWeight.BOLD,  # Made bold
+            color=self.COLOR_PRIMARY  # Changed from TEXT_SEC to PRIMARY
+        )
         self.box_text = ft.Text("Коробка №1", size=18, weight=ft.FontWeight.BOLD, color=self.COLOR_PRIMARY)
+        
+        # Menu button for additional options
+        self.top_menu_btn = ft.IconButton(
+            icon=ft.Icons.MORE_VERT,
+            icon_size=28,
+            icon_color=self.COLOR_TEXT,
+            on_click=self.open_top_menu
+        )
         
         top_bar = ft.Container(
             content=ft.Row(
                 [
                     self.box_text,
-                    self.progress_text
+                    ft.Row(
+                        [
+                            self.progress_text,
+                            self.top_menu_btn
+                        ],
+                        spacing=5
+                    )
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             ),
@@ -279,6 +304,31 @@ class AssemblyApp:
             on_dismiss=lambda _: print("Dismissed")
         )
         self.page.overlay.append(self.bs)
+        
+        # --- Top Menu (for additional options) ---
+        self.top_menu_bs = ft.BottomSheet(
+            ft.Container(
+                ft.Column(
+                    [
+                        ft.ListTile(
+                            leading=ft.Icon(ft.Icons.SAVE_ALT, color=self.COLOR_PRIMARY), 
+                            title=ft.Text("Сгенерировать промежуточный файл"), 
+                            on_click=self.on_generate_intermediate
+                        ),
+                        ft.ListTile(
+                            leading=ft.Icon(ft.Icons.CHECK_CIRCLE, color=ft.Colors.GREEN), 
+                            title=ft.Text("Завершить сборку досрочно"), 
+                            on_click=self.on_finish_early
+                        ),
+                    ],
+                    tight=True
+                ),
+                padding=10,
+                bgcolor=self.COLOR_SURFACE
+            ),
+            open=False,
+        )
+        self.page.overlay.append(self.top_menu_bs)
 
     def update_item_display(self):
         if 0 <= self.current_item_index < len(self.assembly_items):
@@ -315,6 +365,7 @@ class AssemblyApp:
         item['collected_quantity'] = item['quantity']
         item['box'] = self.current_box
         
+        self.autosave_session()
         self.next_item()
 
     def open_bottom_sheet(self, e):
@@ -330,6 +381,7 @@ class AssemblyApp:
         item['status'] = 'skipped'
         item['collected_quantity'] = 0
         item['box'] = 0
+        self.autosave_session()
         self.next_item()
 
     def on_change_qty(self, e, item_index=None):
@@ -367,6 +419,7 @@ class AssemblyApp:
                     self.update_item_display()
                     # Если меняли текущий элемент и это не обзор, переходим к следующему
                     if idx == self.current_item_index:
+                        self.autosave_session()
                         self.next_item()
 
             except ValueError:
@@ -479,6 +532,7 @@ class AssemblyApp:
         self.bs.open = False
         self.bs.update()
         self.current_box += 1
+        self.autosave_session()
         self.update_item_display()
         self.page.snack_bar = ft.SnackBar(ft.Text(f"Начата коробка №{self.current_box}"))
         self.page.snack_bar.open = True
@@ -666,6 +720,9 @@ class AssemblyApp:
             output_filename = writer.generate_final_file()
             self.output_file_path = str(Path(output_filename).absolute())  # Store for sharing
             
+            # Delete autosave after successful completion
+            self.delete_autosave()
+            
             self.page.clean()
             
             content = [
@@ -674,15 +731,28 @@ class AssemblyApp:
                 ft.Text(f"Файл сохранен:\n{self.output_file_path}", size=16, color=self.COLOR_TEXT_SEC, text_align=ft.TextAlign.CENTER),
                 ft.Container(height=20),
                 ft.ElevatedButton(
-                    "Показать расположение файла",
-                    icon=ft.Icons.FOLDER_OPEN,
+                    "Поделиться файлом",
+                    icon=ft.Icons.SHARE,
                     style=ft.ButtonStyle(
                         color=self.COLOR_BG,
-                        bgcolor=self.COLOR_PRIMARY,
+                        bgcolor=self.COLOR_SUCCESS,
                         padding=20,
                         shape=ft.RoundedRectangleBorder(radius=10),
                     ),
-                    on_click=lambda _: self.share_file()
+                    on_click=lambda _: self.share_file_native()
+                ),
+                ft.Container(height=10),
+                ft.ElevatedButton(
+                    "Показать расположение",
+                    icon=ft.Icons.FOLDER_OPEN,
+                    style=ft.ButtonStyle(
+                        color=self.COLOR_PRIMARY,
+                        bgcolor=ft.Colors.TRANSPARENT,
+                        side=ft.BorderSide(2, self.COLOR_PRIMARY),
+                        padding=20,
+                        shape=ft.RoundedRectangleBorder(radius=10),
+                    ),
+                    on_click=lambda _: self.show_file_location()
                 ),
                 ft.Container(height=10),
                 ft.ElevatedButton("В главное меню", on_click=lambda _: self.init_ui())
@@ -711,8 +781,25 @@ class AssemblyApp:
         except Exception as e:
             self.show_error(f"Ошибка сохранения: {e}")
 
-    def share_file(self):
-        """Show file location and provide copy option since native sharing is not supported"""
+    def share_file_native(self):
+        """Share file using native share dialog (Android/iOS)"""
+        if self.output_file_path:
+            try:
+                # Use Flet's native share functionality
+                self.page.share(
+                    title="Файл сборки готов",
+                    text=f"Сборка завершена: {Path(self.output_file_path).name}",
+                    files=[self.output_file_path]
+                )
+            except Exception as ex:
+                # Fallback to showing file location if sharing fails
+                self.show_error(f"Функция 'Поделиться' недоступна: {ex}")
+                self.show_file_location()
+        else:
+            self.show_error("Файл не найден")
+    
+    def show_file_location(self):
+        """Show file location and provide copy option"""
         if self.output_file_path:
             def close_dlg(e):
                 self.page.close(share_dialog)
@@ -726,7 +813,6 @@ class AssemblyApp:
             
             def open_folder(e):
                 try:
-                    import os
                     folder_path = str(Path(self.output_file_path).parent)
                     # Try to open the folder in file manager
                     self.page.launch_url(f"file://{folder_path}")
@@ -764,6 +850,190 @@ class AssemblyApp:
         self.page.snack_bar = ft.SnackBar(ft.Text(f"{feature} еще не реализовано"))
         self.page.snack_bar.open = True
         self.page.update()
+    
+    def autosave_session(self):
+        """Automatically save session to a hidden file"""
+        try:
+            session_data = {
+                "assembly_items": self.assembly_items,
+                "current_item_index": self.current_item_index,
+                "current_box": self.current_box,
+                "shipment_info": self.shipment_info,
+                "input_file_path": self.input_file_path,
+                "output_directory": self.output_directory,
+            }
+            with open(self.autosave_path, "wb") as f:
+                pickle.dump(session_data, f)
+        except Exception:
+            pass  # Silent fail for autosave
+    
+    def try_load_autosave(self):
+        """Try to load autosaved session on startup"""
+        if self.autosave_path.exists():
+            try:
+                with open(self.autosave_path, "rb") as f:
+                    session_data = pickle.load(f)
+                
+                self.assembly_items = session_data["assembly_items"]
+                self.current_item_index = session_data["current_item_index"]
+                self.current_box = session_data["current_box"]
+                self.shipment_info = session_data["shipment_info"]
+                self.input_file_path = session_data["input_file_path"]
+                self.output_directory = session_data.get("output_directory", "")
+                
+                # Show dialog to ask if user wants to continue
+                def continue_session(e):
+                    self.page.close(resume_dialog)
+                    if self.output_directory:
+                        self.start_assembly()
+                    else:
+                        self.show_folder_selection_dialog()
+                
+                def start_new(e):
+                    self.page.close(resume_dialog)
+                    self.delete_autosave()
+                    self.assembly_items = []
+                    self.init_ui()
+                
+                resume_dialog = ft.AlertDialog(
+                    title=ft.Text("Восстановить сборку?"),
+                    content=ft.Text("Найдена незавершенная сборка. Продолжить?")
+,
+                    actions=[
+                        ft.TextButton("Начать новую", on_click=start_new),
+                        ft.TextButton("Продолжить", on_click=continue_session),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
+                self.page.open(resume_dialog)
+                
+            except Exception:
+                self.delete_autosave()
+    
+    def delete_autosave(self):
+        """Delete autosave file"""
+        try:
+            if self.autosave_path.exists():
+                self.autosave_path.unlink()
+        except Exception:
+            pass
+    
+    def open_top_menu(self, e):
+        """Open top menu with additional options"""
+        self.top_menu_bs.open = True
+        self.top_menu_bs.update()
+    
+    def on_generate_intermediate(self, e):
+        """Generate intermediate Excel file with current progress"""
+        self.top_menu_bs.open = False
+        self.top_menu_bs.update()
+        
+        def confirm_generate(e):
+            self.page.close(confirm_dialog)
+            self.generate_excel_file(mark_uncollected=True, finish=False)
+        
+        def cancel_generate(e):
+            self.page.close(confirm_dialog)
+        
+        confirm_dialog = ft.AlertDialog(
+            title=ft.Text("Сгенерировать промежуточный файл?"),
+            content=ft.Text("Все необработанные позиции будут помечены как не собранные. Сборка продолжится."),
+            actions=[
+                ft.TextButton("Отмена", on_click=cancel_generate),
+                ft.TextButton("Да, сгенерировать", on_click=confirm_generate),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.open(confirm_dialog)
+    
+    def on_finish_early(self, e):
+        """Finish assembly early"""
+        self.top_menu_bs.open = False
+        self.top_menu_bs.update()
+        
+        def confirm_finish(e):
+            self.page.close(confirm_dialog)
+            self.generate_excel_file(mark_uncollected=True, finish=True)
+        
+        def cancel_finish(e):
+            self.page.close(confirm_dialog)
+        
+        confirm_dialog = ft.AlertDialog(
+            title=ft.Text("Завершить сборку досрочно?"),
+            content=ft.Text("Все необработанные позиции будут помечены как не собранные. Сборка завершится."),
+            actions=[
+                ft.TextButton("Отмена", on_click=cancel_finish),
+                ft.TextButton("Да, завершить", on_click=confirm_finish),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.open(confirm_dialog)
+    
+    def generate_excel_file(self, mark_uncollected=False, finish=False):
+        """Generate Excel file with current state"""
+        # Mark all pending items as skipped if requested
+        if mark_uncollected:
+            for item in self.assembly_items:
+                if item['status'] == 'pending':
+                    item['status'] = 'skipped'
+                    item['collected_quantity'] = 0
+                    item['box'] = 0
+        
+        collected_data = [
+            {
+                'box': item['box'],
+                'article': item['article'],
+                'name': item['name'],
+                'quantity': item['collected_quantity'],
+                'barcode': item.get('barcode', '')
+            }
+            for item in self.assembly_items if item['status'] in ['collected', 'quantity_changed'] and item['collected_quantity'] > 0
+        ]
+
+        discrepancies = []
+        for item in self.assembly_items:
+            identifier = item.get('barcode') or f"Арт: {item['article']}"
+            if item['status'] == 'skipped':
+                discrepancies.append(f"Пропущено: {identifier} - {item['quantity']} шт.")
+            elif item['status'] == 'quantity_changed' and item['collected_quantity'] != item['quantity']:
+                 discrepancies.append(f"Изменено: {identifier} было {item['quantity']}, стало {item['collected_quantity']}")
+
+        if not collected_data and not discrepancies:
+            self.show_error("Нет данных для сохранения")
+            return
+
+        try:
+            writer = ExcelWriter(
+                collected_data=collected_data,
+                shipment_info=self.shipment_info,
+                discrepancies=discrepancies,
+                original_file_path=self.input_file_path,
+                output_directory=self.output_directory
+            )
+            output_filename = writer.generate_final_file()
+            self.output_file_path = str(Path(output_filename).absolute())
+            
+            if finish:
+                # Delete autosave and go to completion screen
+                self.delete_autosave()
+                self.finish_assembly()
+            else:
+                # Show success message and continue
+                self.page.snack_bar = ft.SnackBar(
+                    ft.Text(f"Файл сохранен: {Path(output_filename).name}"),
+                    bgcolor=self.COLOR_SUCCESS
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                
+                # Reset pending items back to pending if we marked them
+                if mark_uncollected:
+                    for item in self.assembly_items:
+                        if item['status'] == 'skipped' and item['collected_quantity'] == 0:
+                            item['status'] = 'pending'
+        
+        except Exception as ex:
+            self.show_error(f"Ошибка сохранения: {ex}")
 
 def main(page: ft.Page):
     app = AssemblyApp(page)
