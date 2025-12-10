@@ -42,7 +42,8 @@ class MainActivity : AppCompatActivity() {
     
     private fun setupUI() {
         binding.openFileButton.setOnClickListener {
-            filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            // Support both xlsx and xls
+            filePickerLauncher.launch("application/*")
         }
         
         binding.continueSessionButton.setOnClickListener {
@@ -85,7 +86,18 @@ class MainActivity : AppCompatActivity() {
             )
             
             sessionManager.saveSession(session)
-            startAssembly()
+            
+            // Show confirmation with items count
+            AlertDialog.Builder(this)
+                .setTitle("Файл загружен")
+                .setMessage("Найдено позиций: ${result.items.size}\\n\\nНачать сборку?")
+                .setPositiveButton("Начать") { _, _ ->
+                    startAssembly()
+                }
+                .setNegativeButton("Отмена") { _, _ ->
+                    sessionManager.clearSession()
+                }
+                .show()
             
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка чтения файла: ${e.message}", Toast.LENGTH_LONG).show()

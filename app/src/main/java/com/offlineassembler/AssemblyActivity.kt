@@ -202,25 +202,8 @@ class AssemblyActivity : AppCompatActivity() {
     }
     
     private fun showReviewList() {
-        val s = session ?: return
-        
-        val items = s.items.mapIndexed { index, item ->
-            val status = when (item.status) {
-                ItemStatus.COLLECTED -> "✓"
-                ItemStatus.SKIPPED -> "✗"
-                ItemStatus.QUANTITY_CHANGED -> "~"
-                else -> "○"
-            }
-            "$status ${item.location} | ${item.barcode.takeLast(4)} | ${item.collectedQuantity}/${item.quantity}"
-        }
-        
-        AlertDialog.Builder(this)
-            .setTitle("Обзор сборки")
-            .setItems(items.toTypedArray()) { _, which ->
-                // Could allow editing here
-            }
-            .setPositiveButton("Закрыть", null)
-            .show()
+        val intent = Intent(this, ReviewActivity::class.java)
+        startActivity(intent)
     }
     
     private fun confirmGenerateIntermediate() {
@@ -305,45 +288,12 @@ class AssemblyActivity : AppCompatActivity() {
     }
     
     private fun showCompletionDialog(file: File, discrepancies: List<String>) {
-        val message = buildString {
-            append("Файл сохранен:\n${file.absolutePath}")
-            if (discrepancies.isNotEmpty()) {
-                append("\n\nРасхождения:\n")
-                discrepancies.forEach { append("• $it\n") }
-            }
+        val intent = Intent(this, CompletionActivity::class.java).apply {
+            putExtra(CompletionActivity.EXTRA_FILE_PATH, file.absolutePath)
+            putStringArrayListExtra(CompletionActivity.EXTRA_DISCREPANCIES, ArrayList(discrepancies))
         }
-        
-        AlertDialog.Builder(this)
-            .setTitle("Сборка завершена!")
-            .setMessage(message)
-            .setPositiveButton("Поделиться") { _, _ ->
-                shareFile(file)
-            }
-            .setNeutralButton("В главное меню") { _, _ ->
-                finish()
-            }
-            .setCancelable(false)
-            .show()
+        startActivity(intent)
+        finish()
     }
     
-    private fun shareFile(file: File) {
-        try {
-            val uri = FileProvider.getUriForFile(
-                this,
-                "${packageName}.fileprovider",
-                file
-            )
-            
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            
-            startActivity(Intent.createChooser(intent, "Поделиться файлом"))
-            
-        } catch (e: Exception) {
-            Toast.makeText(this, "Ошибка при попытке поделиться: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
 }
