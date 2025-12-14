@@ -148,10 +148,17 @@ class MainActivity : AppCompatActivity() {
     
     private fun startAssembly() {
         val session = sessionManager.loadSession()
-        if (session != null && session.outputDirUri.isEmpty()) {
-            showFolderSelectionDialog()
+        if (session != null) {
+            if (session.outputDirUri.isEmpty()) {
+                showFolderSelectionDialog()
+            } else {
+                launchAssemblyActivity()
+            }
         } else {
-            launchAssemblyActivity()
+            // Session is invalid or null, clear it to prevent loop
+            sessionManager.clearSession()
+            binding.continueSessionButton.visibility = View.GONE
+            Toast.makeText(this, "Ошибка: сессия не найдена", Toast.LENGTH_SHORT).show()
         }
     }
     

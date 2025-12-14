@@ -307,11 +307,28 @@ class AssemblyActivity : AppCompatActivity() {
                 }
             }
             
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Toast.makeText(this, "Ошибка сохранения: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
         }
     }
     
+    override fun onResume() {
+        super.onResume()
+        // Reload session to get changes from ReviewActivity
+        val loadedSession = sessionManager.loadSession()
+        if (loadedSession != null) {
+            session = loadedSession
+            // Update display but don't save immediately to avoid overwriting if something is wrong
+            // updateDisplay() calls saveSession(), which is fine as we just loaded the latest state
+            updateDisplay()
+        } else if (!isFinishing) {
+            // If session is missing and we are not finishing, something is wrong
+            Toast.makeText(this, "Ошибка: сессия не найдена", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+
     private fun showCompletionDialog(fileUriString: String, discrepancies: List<String>) {
         val intent = Intent(this, CompletionActivity::class.java).apply {
             putExtra(CompletionActivity.EXTRA_FILE_URI, fileUriString)
