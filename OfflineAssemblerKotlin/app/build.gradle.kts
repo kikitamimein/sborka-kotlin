@@ -8,7 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.offlineassembler"
+        applicationId = "com.offlineassembler.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 2
