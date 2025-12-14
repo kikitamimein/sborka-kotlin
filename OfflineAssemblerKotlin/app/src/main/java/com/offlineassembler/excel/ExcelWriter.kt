@@ -74,12 +74,15 @@ class ExcelWriter(
         val fileName = "Сборка_$timestamp.xlsx"
         
         val dir = DocumentFile.fromTreeUri(context, outputDirUri)
-        if (dir == null || !dir.canWrite()) {
-            throw Exception("Невозможно записать в выбранную папку")
+        if (dir == null) {
+            throw Exception("Не удалось получить доступ к папке. Попробуйте выбрать её заново.")
+        }
+        if (!dir.canWrite()) {
+            throw Exception("Нет прав на запись в папку. Попробуйте выбрать другую.")
         }
         
         val file = dir.createFile("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName)
-            ?: throw Exception("Не удалось создать файл")
+            ?: throw Exception("Не удалось создать файл в выбранной папке.")
             
         context.contentResolver.openOutputStream(file.uri)?.use { os ->
             workbook.write(os)
