@@ -19,57 +19,68 @@ class ExcelWriter(
     
     fun generateFinalFile(): String {
         val workbook = XSSFWorkbook()
-        
-        // Create main sheet
         val sheet = workbook.createSheet("Сборка")
+        var rowNum = 0
         
-        // Header row
-        val headerRow = sheet.createRow(0)
-        val headers = listOf("Коробка", "Артикул", "Наименование", "Количество", "Штрихкод")
-        headers.forEachIndexed { index, header ->
-            headerRow.createCell(index).setCellValue(header)
-        }
-        
-        // Data rows
-        var rowNum = 1
-        collectedItems.filter { it.status in listOf(ItemStatus.COLLECTED, ItemStatus.QUANTITY_CHANGED) && it.collectedQuantity > 0 }
-            .forEach { item ->
-                val row = sheet.createRow(rowNum++)
-                row.createCell(0).setCellValue(item.box.toDouble())
-                row.createCell(1).setCellValue(item.article)
-                row.createCell(2).setCellValue(item.name)
-                row.createCell(3).setCellValue(item.collectedQuantity.toDouble())
-                row.createCell(4).setCellValue(item.barcode)
-            }
-        
-        // Add shipment info
-        if (shipmentInfo.isNotEmpty()) {
-            rowNum++
-            val infoRow = sheet.createRow(rowNum++)
-            infoRow.createCell(0).setCellValue("Информация о поставке:")
-            val infoDataRow = sheet.createRow(rowNum++)
-            infoDataRow.createCell(0).setCellValue(shipmentInfo)
-        }
-        
-        // Add discrepancies
+        // 1. Discrepancies at the top
         if (discrepancies.isNotEmpty()) {
-            rowNum++
-            val discrepancyHeaderRow = sheet.createRow(rowNum++)
-            discrepancyHeaderRow.createCell(0).setCellValue("Расхождения:")
+            val headerRow = sheet.createRow(rowNum++)
+            headerRow.createCell(0).setCellValue("Расхождения:")
             
             discrepancies.forEach { discrepancy ->
-                val discrepancyRow = sheet.createRow(rowNum++)
-                discrepancyRow.createCell(0).setCellValue(discrepancy)
+                val row = sheet.createRow(rowNum++)
+                row.createCell(0).setCellValue(discrepancy)
+            }
+            rowNum++ // Spacing
+        }
+        
+        // 2. Shipment Info
+        if (shipmentInfo.isNotEmpty()) {
+            val headerRow = sheet.createRow(rowNum++)
+            headerRow.createCell(0).setCellValue("Информация о поставке:")
+            
+            val infoRow = sheet.createRow(rowNum++)
+            infoRow.createCell(0).setCellValue(shipmentInfo)
+            rowNum++ // Spacing
+        }
+        
+        // 3. Boxes
+        // Find all unique box numbers
+        val boxes = collectedItems.map { it.box }.filter { it > 0 }.distinct().sorted()
+        
+        boxes.forEach { boxNum ->
+            val boxItems = collectedItems.filter { it.box == boxNum && it.status in listOf(ItemStatus.COLLECTED, ItemStatus.QUANTITY_CHANGED) }
+            
+            if (boxItems.isNotEmpty()) {
+                // Box Header
+                val boxHeaderRow = sheet.createRow(rowNum++)
+                val cell = boxHeaderRow.createCell(0)
+                cell.setCellValue("Коробка № $boxNum")
+                // Merge cells for box header (across 3 columns)
+                sheet.addMergedRegion(org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 2))
+                
+                // Columns Header
+                val colHeaderRow = sheet.createRow(rowNum++)
+                colHeaderRow.createCell(0).setCellValue("Кол-во")
+                colHeaderRow.createCell(1).setCellValue("Артикул")
+                colHeaderRow.createCell(2).setCellValue("Штрихкод")
+                
+                // Items
+                boxItems.forEach { item ->
+                    val row = sheet.createRow(rowNum++)
+                    row.createCell(0).setCellValue(item.collectedQuantity.toDouble())
+                    row.createCell(1).setCellValue(item.article)
+                    row.createCell(2).setCellValue(item.barcode)
+                }
+                
+                rowNum++ // Spacing between boxes
             }
         }
         
-        // Auto-size columns
-        // Set column widths (in units of 1/256th of a character width)
-        sheet.setColumnWidth(0, 15 * 256) // Box
-        sheet.setColumnWidth(1, 20 * 256) // Article
-        sheet.setColumnWidth(2, 40 * 256) // Name
-        sheet.setColumnWidth(3, 15 * 256) // Quantity
-        sheet.setColumnWidth(4, 25 * 256) // Barcode
+        // Set column widths (fixed, no autoSizeColumn)
+        sheet.setColumnWidth(0, 15 * 256) // Quantity
+        sheet.setColumnWidth(1, 25 * 256) // Article
+        sheet.setColumnWidth(2, 25 * 256) // Barcode
         
         // Generate filename
         val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
