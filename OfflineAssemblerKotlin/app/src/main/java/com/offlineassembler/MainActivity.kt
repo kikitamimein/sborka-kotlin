@@ -1,4 +1,3 @@
-```
 package com.offlineassembler
 
 import android.content.Intent
@@ -307,4 +306,3 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount() = files.size
     }
 }
-```
