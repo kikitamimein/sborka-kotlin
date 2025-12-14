@@ -64,9 +64,12 @@ class ExcelWriter(
         }
         
         // Auto-size columns
-        for (i in 0 until 5) {
-            sheet.autoSizeColumn(i)
-        }
+        // Set column widths (in units of 1/256th of a character width)
+        sheet.setColumnWidth(0, 15 * 256) // Box
+        sheet.setColumnWidth(1, 20 * 256) // Article
+        sheet.setColumnWidth(2, 40 * 256) // Name
+        sheet.setColumnWidth(3, 15 * 256) // Quantity
+        sheet.setColumnWidth(4, 25 * 256) // Barcode
         
         // Generate filename
         val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
