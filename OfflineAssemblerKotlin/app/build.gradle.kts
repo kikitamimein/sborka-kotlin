@@ -24,6 +24,8 @@ android {
             storePassword = "password"
             keyAlias = "key0"
             keyPassword = "password"
+            v1SigningEnabled = true
+            v2SigningEnabled = true
         }
     }
 
@@ -32,8 +34,6 @@ android {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            v1SigningEnabled = true
-            v2SigningEnabled = true
         }
     }
     
