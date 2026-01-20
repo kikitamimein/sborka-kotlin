@@ -19,113 +19,139 @@ class ExcelWriter(
     fun generateFinalFile(): String {
         val workbook = XSSFWorkbook()
         
+        // Define styles
+        val headerStyle = workbook.createCellStyle().apply {
+            val font = workbook.createFont()
+            font.bold = true
+            font.fontHeightInPoints = 12
+            setFont(font)
+        }
+        
+        val subHeaderStyle = workbook.createCellStyle().apply {
+            val font = workbook.createFont()
+            font.bold = true
+            setFont(font)
+            fillForegroundColor = org.apache.poi.ss.usermodel.IndexedColors.GREY_25_PERCENT.index
+            fillPattern = org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND
+        }
+        
+        val yellowStyle = workbook.createCellStyle().apply {
+            fillForegroundColor = org.apache.poi.ss.usermodel.IndexedColors.YELLOW.index
+            fillPattern = org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND
+        }
+        
         // Group items by Source Name
         val itemsBySource = collectedItems.groupBy { it.sourceName.ifEmpty { "Сборка" } }
         
-        // Create a sheet for each source (Order)
         itemsBySource.forEach { (sourceName, items) ->
-            val safeSheetName = try {
-                 org.apache.poi.ss.util.WorkbookUtil.createSafeSheetName(sourceName)
-            } catch (e: Exception) {
-                "Order_${sourceName.hashCode()}"
-            }
-            
+            val safeSheetName = org.apache.poi.ss.util.WorkbookUtil.createSafeSheetName(sourceName)
             var uniqueSheetName = safeSheetName
             var suffix = 1
             while (workbook.getSheet(uniqueSheetName) != null) {
                 uniqueSheetName = "$safeSheetName ($suffix)"
                 suffix++
             }
-            
             val sheet = workbook.createSheet(uniqueSheetName)
-            var rowNum = 0
             
-            // 1. Shipment Info section
-            val infoHeaderRow = sheet.createRow(rowNum++)
-            infoHeaderRow.createCell(0).setCellValue("ИНФОРМАЦИЯ О ПОСТАВКЕ:")
-            
+            // 1. Shipment Info at the very top (Row 0)
             if (shipmentInfo.isNotEmpty()) {
-                val infoRow = sheet.createRow(rowNum++)
-                infoRow.createCell(0).setCellValue(shipmentInfo)
-                rowNum++
+                val infoRow = sheet.createRow(0)
+                infoRow.createCell(0).apply {
+                    setCellValue("ПОСТАВКА: $shipmentInfo")
+                    setCellStyle(headerStyle)
+                }
             }
             
+            val dataStartRow = 2
             
-            // 3. Detailed Box Breakdown
+            // 2. "Uncollected" block (Column 0)
+            val uncollected = items.filter { it.status == ItemStatus.SKIPPED || it.status == ItemStatus.PENDING || (it.status == ItemStatus.QUANTITY_CHANGED && it.collectedQuantity == 0) }
+            
+            var unRowNum = dataStartRow
+            val uncollectedHeaderRow = sheet.getRow(unRowNum) ?: sheet.createRow(unRowNum)
+            uncollectedHeaderRow.createCell(0).apply {
+                setCellValue("не найдено")
+                setCellStyle(headerStyle)
+            }
+            unRowNum++
+            
+            val uncollectedSubHeaderRow = sheet.getRow(unRowNum) ?: sheet.createRow(unRowNum)
+            uncollectedSubHeaderRow.createCell(0).apply {
+                setCellValue("штрихкод")
+                setCellStyle(subHeaderStyle)
+            }
+            unRowNum++
+            
+            uncollected.forEach { item ->
+                val row = sheet.getRow(unRowNum) ?: sheet.createRow(unRowNum)
+                row.createCell(0).setCellValue(item.barcode.ifEmpty { item.article })
+                unRowNum++
+            }
+            
+            // 3. Boxes side-by-side
             val boxes = items.map { it.box }.filter { it > 0 }.distinct().sorted()
-            boxes.forEach { boxNum ->
+            
+            boxes.forEachIndexed { boxIdx, boxNum ->
+                val startCol = 2 + boxIdx * 4 // Gap of 1 column between boxes
+                var boxRowNum = dataStartRow
+                
                 val boxItems = items.filter { it.box == boxNum && (it.status == ItemStatus.COLLECTED || it.status == ItemStatus.QUANTITY_CHANGED) }
                 
                 if (boxItems.isNotEmpty()) {
                     // Box Header
-                    val boxHeaderRow = sheet.createRow(rowNum++)
-                    boxHeaderRow.createCell(0).setCellValue("КОРОБКА № $boxNum")
+                    val headerRow = sheet.getRow(boxRowNum) ?: sheet.createRow(boxRowNum)
+                    headerRow.createCell(startCol).apply {
+                        setCellValue("коробка $boxNum")
+                        setCellStyle(headerStyle)
+                    }
+                    boxRowNum++
                     
-                    // Columns Header
-                    val colHeaderRow = sheet.createRow(rowNum++)
-                    colHeaderRow.createCell(0).setCellValue("Кол-во")
-                    colHeaderRow.createCell(1).setCellValue("Артикул")
-                    colHeaderRow.createCell(2).setCellValue("Штрихкод")
+                    // Sub Headers
+                    val subHeaderRow = sheet.getRow(boxRowNum) ?: sheet.createRow(boxRowNum)
+                    subHeaderRow.createCell(startCol).apply { setCellValue("кол-во"); setCellStyle(subHeaderStyle) }
+                    subHeaderRow.createCell(startCol + 1).apply { setCellValue("артикул"); setCellStyle(subHeaderStyle) }
+                    subHeaderRow.createCell(startCol + 2).apply { setCellValue("штрихкод"); setCellStyle(subHeaderStyle) }
+                    boxRowNum++
                     
-                    // Items
+                    // Box Items
                     boxItems.forEach { item ->
-                        val row = sheet.createRow(rowNum++)
-                        row.createCell(0).setCellValue(item.collectedQuantity.toDouble())
-                        row.createCell(1).setCellValue(item.article)
-                        row.createCell(2).setCellValue(item.barcode)
-                    }
-                    
-                    // Box Discrepancies (those that were collected but quantity changed)
-                    val boxDiscrepancies = boxItems.filter { it.status == ItemStatus.QUANTITY_CHANGED && it.collectedQuantity != it.quantity }
-                    if (boxDiscrepancies.isNotEmpty()) {
-                        val discHeader = sheet.createRow(rowNum++)
-                        discHeader.createCell(1).setCellValue("Изменения в коробке $boxNum:")
-                        boxDiscrepancies.forEach { item ->
-                            val row = sheet.createRow(rowNum++)
-                            val identifier = item.article
-                            row.createCell(1).setCellValue("Арт: $identifier (было ${item.quantity}, стало ${item.collectedQuantity})")
+                        val row = sheet.getRow(boxRowNum) ?: sheet.createRow(boxRowNum)
+                        
+                        // Qty Cell
+                        val qtyCell = row.createCell(startCol)
+                        if (item.collectedQuantity != item.quantity) {
+                            qtyCell.setCellValue("${item.collectedQuantity}/${item.quantity}")
+                            qtyCell.setCellStyle(yellowStyle)
+                        } else {
+                            qtyCell.setCellValue(item.collectedQuantity.toDouble())
                         }
+                        
+                        row.createCell(startCol + 1).setCellValue(item.article)
+                        row.createCell(startCol + 2).setCellValue(item.barcode)
+                        
+                        boxRowNum++
                     }
-                    
-                    rowNum++ // Spacing between boxes
                 }
-            }
-            
-            // 4. Uncollected / Skipped section
-            val uncollected = items.filter { it.status == ItemStatus.SKIPPED || it.status == ItemStatus.PENDING || (it.status == ItemStatus.QUANTITY_CHANGED && it.collectedQuantity == 0) }
-            if (uncollected.isNotEmpty()) {
-                val skipHeaderRow = sheet.createRow(rowNum++)
-                skipHeaderRow.createCell(0).setCellValue("НЕ НАЙДЕНО / ПРОПУЩЕНО:")
                 
-                uncollected.forEach { item ->
-                    val row = sheet.createRow(rowNum++)
-                    row.createCell(0).setCellValue(item.quantity.toDouble())
-                    row.createCell(1).setCellValue(item.article)
-                    row.createCell(2).setCellValue(item.barcode)
-                }
+                // Set column widths for this box
+                sheet.setColumnWidth(startCol, 12 * 256)
+                sheet.setColumnWidth(startCol + 1, 20 * 256)
+                sheet.setColumnWidth(startCol + 2, 20 * 256)
+                sheet.setColumnWidth(startCol + 3, 2 * 256) // Separator
             }
             
-            // Set column widths
-            sheet.setColumnWidth(0, 20 * 256)
-            sheet.setColumnWidth(1, 35 * 256)
-            sheet.setColumnWidth(2, 25 * 256)
+            sheet.setColumnWidth(0, 25 * 256) // Uncollected col
+            sheet.setColumnWidth(1, 2 * 256)  // Separator
         }
         
-        // Generate filename
+        // Finalize and save
         val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
         val timestamp = dateFormat.format(Date())
         val fileName = "Сборка_$timestamp.xlsx"
         
-        val dir = DocumentFile.fromTreeUri(context, outputDirUri)
-        if (dir == null) {
-            throw Exception("Не удалось получить доступ к папке. Попробуйте выбрать её заново.")
-        }
-        if (!dir.canWrite()) {
-            throw Exception("Нет прав на запись в папку. Попробуйте выбрать другую.")
-        }
-        
+        val dir = DocumentFile.fromTreeUri(context, outputDirUri) ?: throw Exception("Папка не найдена")
         val file = dir.createFile("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName)
-            ?: throw Exception("Не удалось создать файл в выбранной папке.")
+            ?: throw Exception("Не удалось создать файл")
             
         context.contentResolver.openOutputStream(file.uri)?.use { os ->
             workbook.write(os)
