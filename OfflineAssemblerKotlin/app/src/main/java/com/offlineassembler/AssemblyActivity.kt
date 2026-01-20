@@ -355,5 +355,63 @@ class AssemblyActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-    
+
+    private fun showTopMenu() {
+        val items = listOf(
+            MenuItem("Главное меню", android.R.drawable.ic_menu_revert, R.color.text_primary) { 
+               finish()
+            },
+            MenuItem("Список позиций", android.R.drawable.ic_menu_view, R.color.primary) { showReviewList() }
+        )
+        showBottomSheet("Меню", items)
+    }
+
+    private fun showActionsMenu() {
+        val items = listOf(
+            MenuItem("Промежуточный файл", android.R.drawable.ic_menu_save, R.color.primary) { confirmGenerateIntermediate() },
+            MenuItem("Завершить досрочно", android.R.drawable.ic_menu_close_clear_cancel, R.color.error) { confirmFinishEarly() }
+        )
+        showBottomSheet("Действия с файлом", items)
+    }
+
+    private fun showBottomSheet(title: String, items: List<MenuItem>) {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.layout_bottom_sheet_list, null)
+        
+        val titleView = view.findViewById<android.widget.TextView>(R.id.sheetTitle)
+        val container = view.findViewById<android.widget.LinearLayout>(R.id.itemsContainer)
+        
+        titleView.text = title
+        
+        items.forEach { item ->
+            val itemView = android.widget.TextView(this).apply {
+                text = item.text
+                textSize = 18f
+                setPadding(48, 32, 48, 32)
+                setTextColor(resources.getColor(R.color.text_primary, theme))
+                
+                val icon = resources.getDrawable(item.iconRes, theme).mutate()
+                icon.setTint(resources.getColor(item.colorRes, theme))
+                icon.setBounds(0, 0, 72, 72)
+                setCompoundDrawables(icon, null, null, null)
+                compoundDrawablePadding = 32
+                
+                setOnClickListener {
+                    dialog.dismiss()
+                    item.action()
+                }
+            }
+            container.addView(itemView)
+        }
+        
+        dialog.setContentView(view)
+        dialog.show()
+    }
+
+    private data class MenuItem(
+        val text: String,
+        val iconRes: Int,
+        val colorRes: Int,
+        val action: () -> Unit
+    )
 }
