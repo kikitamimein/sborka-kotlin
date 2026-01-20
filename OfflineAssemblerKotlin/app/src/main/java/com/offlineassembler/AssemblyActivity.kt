@@ -90,18 +90,30 @@ class AssemblyActivity : AppCompatActivity() {
             val title = itemView.findViewById<android.widget.TextView>(android.R.id.text1)
             val subtitle = itemView.findViewById<android.widget.TextView>(android.R.id.text2)
             
-            // Get current box for this sheet
             val sheetBox = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }
-            
             val sourceLabel = if (item.sourceName.isNotEmpty()) "[${item.sourceName}] " else ""
             
-            title.text = "$sourceLabel${item.quantity} шт."
-            title.textSize = 24f
-            title.setTypeface(null, android.graphics.Typeface.BOLD)
-            title.setTextColor(resources.getColor(R.color.success, theme))
+            // For single sheet, we show quantity big. For multi, we show source and confirm status.
+            if (s.isSingleSheet) {
+                title.text = "${item.quantity} шт."
+                title.textSize = 48f // Same size as barcode/location
+                title.textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
+                subtitle.visibility = android.view.View.GONE
+            } else {
+                title.text = "$sourceLabel${item.quantity} шт."
+                title.textSize = 24f
+                subtitle.text = "Коробка №$sheetBox"
+                
+                // Add indicator if collected
+                if (item.status != ItemStatus.PENDING) {
+                    title.text = "✓ ${title.text}"
+                    title.setTextColor(resources.getColor(R.color.success, theme))
+                } else {
+                    title.setTextColor(resources.getColor(R.color.text_primary, theme))
+                }
+            }
             
-            subtitle.text = if (s.isSingleSheet) "Кол-во: ${item.quantity} шт." else "Коробка №$sheetBox"
-            subtitle.textSize = 16f
+            title.setTypeface(null, android.graphics.Typeface.BOLD)
             
             itemView.setOnClickListener {
                 showItemActions(s.currentIndex + index)
@@ -124,21 +136,19 @@ class AssemblyActivity : AppCompatActivity() {
         val s = session ?: return
         if (s.currentIndex >= s.items.size) return
         
-        val currentItem = s.items[s.currentIndex]
-        val currentBarcode = currentItem.barcode
+        val currentBarcode = s.items[s.currentIndex].barcode
         
-        // Process all items in the current group
-        while (s.currentIndex < s.items.size && s.items[s.currentIndex].barcode == currentBarcode) {
-            val item = s.items[s.currentIndex]
+        // Find FIRST pending item in this barcode group
+        val itemToCollect = s.items.getOrNull(s.currentIndex)
+        
+        if (itemToCollect != null && itemToCollect.status == ItemStatus.PENDING) {
+            itemToCollect.status = ItemStatus.COLLECTED
+            itemToCollect.collectedQuantity = itemToCollect.quantity
+            itemToCollect.box = s.sheetBoxCounters.getOrPut(itemToCollect.sourceName) { 1 }
             
-            // Only collect pending items. Leave SKIPPED/CHANGED items as is.
-            if (item.status == ItemStatus.PENDING) {
-                item.status = ItemStatus.COLLECTED
-                item.collectedQuantity = item.quantity
-                item.box = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }
-            }
-            
-            s.currentIndex++
+            // Check if all items in this group are now done. 
+            // If yes, currentIndex will move forward automatically in updateDisplay() 
+            // when it skips non-pending items.
         }
         
         sessionManager.saveSession(s)
