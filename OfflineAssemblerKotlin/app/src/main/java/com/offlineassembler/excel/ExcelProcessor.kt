@@ -12,6 +12,8 @@ class ExcelProcessor {
     )
     
     fun processFile(inputStream: InputStream): ProcessResult {
+        val items = mutableListOf<AssemblyItem>()
+        var shipmentInfo = ""
         val workbook = WorkbookFactory.create(inputStream)
         // Iterate over all sheets
         for (sheetIndex in 0 until workbook.numberOfSheets) {
