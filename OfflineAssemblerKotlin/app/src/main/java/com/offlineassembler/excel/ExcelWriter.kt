@@ -52,6 +52,7 @@ class ExcelWriter(
             
             
             // 3. Detailed Box Breakdown
+            val boxes = items.map { it.box }.filter { it > 0 }.distinct().sorted()
             boxes.forEach { boxNum ->
                 val boxItems = items.filter { it.box == boxNum && (it.status == ItemStatus.COLLECTED || it.status == ItemStatus.QUANTITY_CHANGED) }
                 

@@ -98,7 +98,7 @@ class AssemblyActivity : AppCompatActivity() {
             if (s.isSingleSheet) {
                 val title = itemView.findViewById<android.widget.TextView>(android.R.id.text1)
                 title.text = "${item.quantity} шт."
-                title.textSize = 64f // Even larger as requested
+                title.textSize = 48f
                 title.textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
                 title.setTypeface(null, android.graphics.Typeface.BOLD)
                 title.setTextColor(resources.getColor(R.color.success, theme))
