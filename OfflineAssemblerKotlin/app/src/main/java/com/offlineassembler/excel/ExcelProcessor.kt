@@ -8,7 +8,8 @@ class ExcelProcessor {
     
     data class ProcessResult(
         val items: List<AssemblyItem>,
-        val shipmentInfo: String
+        val shipmentInfo: String,
+        val isSingleSheet: Boolean
     )
     
     fun processFile(inputStream: InputStream): ProcessResult {
@@ -119,7 +120,8 @@ class ExcelProcessor {
             }
         }
         
+        val isSingleSheet = workbook.numberOfSheets == 1
         workbook.close()
-        return ProcessResult(items, shipmentInfo)
+        return ProcessResult(items, shipmentInfo, isSingleSheet)
     }
 }

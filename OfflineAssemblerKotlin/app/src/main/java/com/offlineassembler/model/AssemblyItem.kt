@@ -61,5 +61,8 @@ data class AssemblySession(
     var outputDirectory: String = "",
     
     @SerializedName("output_dir_uri")
-    var outputDirUri: String = ""
+    var outputDirUri: String = "",
+    
+    @SerializedName("is_single_sheet")
+    var isSingleSheet: Boolean = false
 )

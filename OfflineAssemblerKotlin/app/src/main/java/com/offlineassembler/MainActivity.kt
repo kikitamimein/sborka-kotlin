@@ -199,7 +199,8 @@ class MainActivity : AppCompatActivity() {
             val session = AssemblySession(
                 items = sortedItems.toMutableList(),
                 shipmentInfo = result.shipmentInfo,
-                inputFilePath = uri.toString()
+                inputFilePath = uri.toString(),
+                isSingleSheet = result.isSingleSheet
             )
             
             // Set output directory from prefs if available

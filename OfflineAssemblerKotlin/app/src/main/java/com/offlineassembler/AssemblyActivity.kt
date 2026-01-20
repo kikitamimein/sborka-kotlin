@@ -100,7 +100,7 @@ class AssemblyActivity : AppCompatActivity() {
             title.setTypeface(null, android.graphics.Typeface.BOLD)
             title.setTextColor(resources.getColor(R.color.success, theme))
             
-            subtitle.text = "Коробка №$sheetBox"
+            subtitle.text = if (s.isSingleSheet) "Кол-во: ${item.quantity} шт." else "Коробка №$sheetBox"
             subtitle.textSize = 16f
             
             itemView.setOnClickListener {
@@ -110,8 +110,12 @@ class AssemblyActivity : AppCompatActivity() {
             binding.itemsContainer.addView(itemView)
         }
         
-        // Update main box text (just summary or hide)
-        binding.boxText.text = if (group.size > 1) "Параллельная сборка" else "Коробка №${s.sheetBoxCounters.getOrPut(currentItem.sourceName) { 1 }}"
+        // Update main box text
+        binding.boxText.text = if (s.isSingleSheet) {
+            "Коробка №${s.sheetBoxCounters.getOrPut(currentItem.sourceName) { 1 }}"
+        } else {
+            if (group.size > 1) "Параллельная сборка" else "Коробка №${s.sheetBoxCounters.getOrPut(currentItem.sourceName) { 1 }}"
+        }
         
         sessionManager.saveSession(s)
     }
@@ -305,7 +309,6 @@ class AssemblyActivity : AppCompatActivity() {
                 context = this,
                 collectedItems = s.items,
                 shipmentInfo = s.shipmentInfo,
-                discrepancies = discrepancies,
                 outputDirUri = outputUri
             )
             
