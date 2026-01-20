@@ -142,7 +142,8 @@ class ReviewActivity : AppCompatActivity() {
             b.statusIcon.setImageResource(iconRes)
             b.statusIcon.setColorFilter(resources.getColor(tintColor, theme))
             
-            b.locationText.text = item.location.ifEmpty { "-" }
+            val sourceSuffix = if (item.sourceName.isNotEmpty()) "\n(${item.sourceName})" else ""
+            b.locationText.text = "${item.location.ifEmpty { "-" }}$sourceSuffix"
             
             val barcodeLast4 = if (item.barcode.length >= 4) item.barcode.takeLast(4) else item.barcode
             b.barcodeText.text = barcodeLast4.ifEmpty { "-" }

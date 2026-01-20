@@ -120,21 +120,12 @@
                     android:textColor="@color/primary"
                     android:layout_marginBottom="24dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:id="@+id/itemsContainer"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="КОЛИЧЕСТВО"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary" />
-
-                <TextView
-                    android:id="@+id/quantityText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textSize="48sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/success" />
+                    android:orientation="vertical"
+                    android:animateLayoutChanges="true" />
 
             </LinearLayout>
         </ScrollView>

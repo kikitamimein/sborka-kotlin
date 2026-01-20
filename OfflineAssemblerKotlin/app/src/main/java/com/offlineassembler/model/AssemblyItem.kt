@@ -25,7 +25,10 @@ data class AssemblyItem(
     var collectedQuantity: Int = 0,
     
     @SerializedName("box")
-    var box: Int = 0
+    var box: Int = 0,
+
+    @SerializedName("source_name")
+    val sourceName: String = ""
 )
 
 enum class ItemStatus {
@@ -44,6 +47,9 @@ data class AssemblySession(
     
     @SerializedName("current_box")
     var currentBox: Int = 1,
+
+    @SerializedName("sheet_box_counters")
+    val sheetBoxCounters: MutableMap<String, Int> = mutableMapOf(),
     
     @SerializedName("shipment_info")
     val shipmentInfo: String = "",

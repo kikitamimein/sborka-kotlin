@@ -19,68 +19,94 @@ class ExcelWriter(
     
     fun generateFinalFile(): String {
         val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("Сборка")
-        var rowNum = 0
         
-        // 1. Discrepancies at the top
+        // Group items by Source Name
+        val itemsBySource = collectedItems.groupBy { it.sourceName.ifEmpty { "Сборка" } }
+        
+        // Create a summary/discrepancies sheet if there are discrepancies
         if (discrepancies.isNotEmpty()) {
-            val headerRow = sheet.createRow(rowNum++)
+            val summarySheet = workbook.createSheet("Отчет")
+            var rowNum = 0
+            
+            val headerRow = summarySheet.createRow(rowNum++)
             headerRow.createCell(0).setCellValue("Расхождения:")
             
             discrepancies.forEach { discrepancy ->
-                val row = sheet.createRow(rowNum++)
+                val row = summarySheet.createRow(rowNum++)
                 row.createCell(0).setCellValue(discrepancy)
             }
-            rowNum++ // Spacing
+            summarySheet.setColumnWidth(0, 50 * 256)
         }
         
-        // 2. Shipment Info
-        if (shipmentInfo.isNotEmpty()) {
-            val headerRow = sheet.createRow(rowNum++)
-            headerRow.createCell(0).setCellValue("Информация о поставке:")
-            
-            val infoRow = sheet.createRow(rowNum++)
-            infoRow.createCell(0).setCellValue(shipmentInfo)
-            rowNum++ // Spacing
-        }
-        
-        // 3. Boxes
-        // Find all unique box numbers
-        val boxes = collectedItems.map { it.box }.filter { it > 0 }.distinct().sorted()
-        
-        boxes.forEach { boxNum ->
-            val boxItems = collectedItems.filter { it.box == boxNum && it.status in listOf(ItemStatus.COLLECTED, ItemStatus.QUANTITY_CHANGED) }
-            
-            if (boxItems.isNotEmpty()) {
-                // Box Header
-                val boxHeaderRow = sheet.createRow(rowNum++)
-                val cell = boxHeaderRow.createCell(0)
-                cell.setCellValue("Коробка № $boxNum")
-                // Merge cells for box header (across 3 columns)
-                sheet.addMergedRegion(org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 2))
-                
-                // Columns Header
-                val colHeaderRow = sheet.createRow(rowNum++)
-                colHeaderRow.createCell(0).setCellValue("Кол-во")
-                colHeaderRow.createCell(1).setCellValue("Артикул")
-                colHeaderRow.createCell(2).setCellValue("Штрихкод")
-                
-                // Items
-                boxItems.forEach { item ->
-                    val row = sheet.createRow(rowNum++)
-                    row.createCell(0).setCellValue(item.collectedQuantity.toDouble())
-                    row.createCell(1).setCellValue(item.article)
-                    row.createCell(2).setCellValue(item.barcode)
-                }
-                
-                rowNum++ // Spacing between boxes
+        // Create a sheet for each source (Order)
+        itemsBySource.forEach { (sourceName, items) ->
+            // Excel sheet names must be valid and unique. 
+            // sourceName comes from input Excel, so usually valid, but safe to sanitize?
+            // POI handles some, but let's just use it.
+            val safeSheetName = try {
+                 org.apache.poi.ss.util.WorkbookUtil.createSafeSheetName(sourceName)
+            } catch (e: Exception) {
+                "Order_${sourceName.hashCode()}"
             }
+            
+            // If sheet with this name exists (e.g. from Summary), append suffix
+            var uniqueSheetName = safeSheetName
+            var suffix = 1
+            while (workbook.getSheet(uniqueSheetName) != null) {
+                uniqueSheetName = "$safeSheetName ($suffix)"
+                suffix++
+            }
+            
+            val sheet = workbook.createSheet(uniqueSheetName)
+            var rowNum = 0
+            
+            // Shipment Info (only on first sheet or all? Let's put on all if relevant, or just first)
+            // The original logic bad shipment info. Let's just put it at top of every sheet if existing
+            if (shipmentInfo.isNotEmpty()) {
+                val headerRow = sheet.createRow(rowNum++)
+                headerRow.createCell(0).setCellValue("Информация о поставке:")
+                
+                val infoRow = sheet.createRow(rowNum++)
+                infoRow.createCell(0).setCellValue(shipmentInfo)
+                rowNum++ 
+            }
+            
+            // Find all unique box numbers for THIS source
+            val boxes = items.map { it.box }.filter { it > 0 }.distinct().sorted()
+            
+            boxes.forEach { boxNum ->
+                val boxItems = items.filter { it.box == boxNum && it.status in listOf(ItemStatus.COLLECTED, ItemStatus.QUANTITY_CHANGED) }
+                
+                if (boxItems.isNotEmpty()) {
+                    // Box Header
+                    val boxHeaderRow = sheet.createRow(rowNum++)
+                    val cell = boxHeaderRow.createCell(0)
+                    cell.setCellValue("Коробка № $boxNum")
+                    sheet.addMergedRegion(org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 2))
+                    
+                    // Columns Header
+                    val colHeaderRow = sheet.createRow(rowNum++)
+                    colHeaderRow.createCell(0).setCellValue("Кол-во")
+                    colHeaderRow.createCell(1).setCellValue("Артикул")
+                    colHeaderRow.createCell(2).setCellValue("Штрихкод")
+                    
+                    // Items
+                    boxItems.forEach { item ->
+                        val row = sheet.createRow(rowNum++)
+                        row.createCell(0).setCellValue(item.collectedQuantity.toDouble())
+                        row.createCell(1).setCellValue(item.article)
+                        row.createCell(2).setCellValue(item.barcode)
+                    }
+                    
+                    rowNum++ // Spacing between boxes
+                }
+            }
+            
+            // Set column widths
+            sheet.setColumnWidth(0, 15 * 256)
+            sheet.setColumnWidth(1, 25 * 256)
+            sheet.setColumnWidth(2, 25 * 256)
         }
-        
-        // Set column widths (fixed, no autoSizeColumn)
-        sheet.setColumnWidth(0, 15 * 256) // Quantity
-        sheet.setColumnWidth(1, 25 * 256) // Article
-        sheet.setColumnWidth(2, 25 * 256) // Barcode
         
         // Generate filename
         val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())

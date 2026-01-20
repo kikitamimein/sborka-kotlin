@@ -64,21 +64,54 @@ class AssemblyActivity : AppCompatActivity() {
             return
         }
         
-        val item = s.items[s.currentIndex]
+        // Identify the group of items with the same barcode
+        val currentItem = s.items[s.currentIndex]
+        val currentBarcode = currentItem.barcode
+        val group = s.items.drop(s.currentIndex).takeWhile { it.barcode == currentBarcode }
         
-        binding.nameText.text = item.name
-        binding.locationText.text = item.location.ifEmpty { "---" }
+        binding.nameText.text = currentItem.name
+        binding.locationText.text = currentItem.location.ifEmpty { "---" }
         
         // Show last 4 digits of barcode
-        val barcodeLast4 = if (item.barcode.length >= 4) 
-            item.barcode.takeLast(4) 
+        val barcodeLast4 = if (currentItem.barcode.length >= 4) 
+            currentItem.barcode.takeLast(4) 
         else 
-            item.barcode
+            currentItem.barcode
         binding.barcodeText.text = barcodeLast4.ifEmpty { "----" }
         
-        binding.quantityText.text = item.quantity.toString()
         binding.progressText.text = "${s.currentIndex + 1} / ${s.items.size}"
-        binding.boxText.text = "Коробка №${s.currentBox}"
+        
+        // Update items list
+        binding.itemsContainer.removeAllViews()
+        val inflater = LayoutInflater.from(this)
+        
+        group.forEachIndexed { index, item ->
+            val itemView = inflater.inflate(android.R.layout.simple_list_item_2, binding.itemsContainer, false)
+            val title = itemView.findViewById<android.widget.TextView>(android.R.id.text1)
+            val subtitle = itemView.findViewById<android.widget.TextView>(android.R.id.text2)
+            
+            // Get current box for this sheet
+            val sheetBox = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }
+            
+            val sourceLabel = if (item.sourceName.isNotEmpty()) "[${item.sourceName}] " else ""
+            
+            title.text = "$sourceLabel${item.quantity} шт."
+            title.textSize = 24f
+            title.setTypeface(null, android.graphics.Typeface.BOLD)
+            title.setTextColor(resources.getColor(R.color.success, theme))
+            
+            subtitle.text = "Коробка №$sheetBox"
+            subtitle.textSize = 16f
+            
+            itemView.setOnClickListener {
+                showItemActions(s.currentIndex + index)
+            }
+            
+            binding.itemsContainer.addView(itemView)
+        }
+        
+        // Update main box text (just summary or hide)
+        binding.boxText.text = if (group.size > 1) "Параллельная сборка" else "Коробка №${s.sheetBoxCounters.getOrPut(currentItem.sourceName) { 1 }}"
         
         sessionManager.saveSession(s)
     }
@@ -87,80 +120,56 @@ class AssemblyActivity : AppCompatActivity() {
         val s = session ?: return
         if (s.currentIndex >= s.items.size) return
         
-        val item = s.items[s.currentIndex]
-        item.status = ItemStatus.COLLECTED
-        item.collectedQuantity = item.quantity
-        item.box = s.currentBox
+        val currentItem = s.items[s.currentIndex]
+        val currentBarcode = currentItem.barcode
         
-        s.currentIndex++
+        // Process all items in the current group
+        while (s.currentIndex < s.items.size && s.items[s.currentIndex].barcode == currentBarcode) {
+            val item = s.items[s.currentIndex]
+            
+            // Only collect pending items. Leave SKIPPED/CHANGED items as is.
+            if (item.status == ItemStatus.PENDING) {
+                item.status = ItemStatus.COLLECTED
+                item.collectedQuantity = item.quantity
+                item.box = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }
+            }
+            
+            s.currentIndex++
+        }
+        
         sessionManager.saveSession(s)
         updateDisplay()
     }
     
-    private data class MenuItem(val title: String, val iconRes: Int, val colorRes: Int, val action: () -> Unit)
-
-    private fun showBottomSheet(title: String, items: List<MenuItem>) {
-        val dialog = BottomSheetDialog(this)
-        val view = LayoutInflater.from(this).inflate(R.layout.layout_bottom_sheet_list, null)
-        
-        val container = view.findViewById<android.widget.LinearLayout>(R.id.itemsContainer)
-        val titleView = view.findViewById<android.widget.TextView>(R.id.sheetTitle)
-        titleView.text = title
-        
-        items.forEach { item ->
-            val itemView = LayoutInflater.from(this).inflate(R.layout.item_bottom_sheet_menu, container, false)
-            val icon = itemView.findViewById<android.widget.ImageView>(R.id.menuIcon)
-            val text = itemView.findViewById<android.widget.TextView>(R.id.menuTitle)
-            
-            icon.setImageResource(item.iconRes)
-            icon.setColorFilter(resources.getColor(item.colorRes, theme))
-            text.text = item.title
-            
-            itemView.setOnClickListener {
-                dialog.dismiss()
-                item.action()
-            }
-            container.addView(itemView)
-        }
-        
-        dialog.setContentView(view)
-        dialog.show()
-    }
-
-    private fun showTopMenu() {
-        showBottomSheet("Дополнительные опции", listOf(
-            MenuItem("Сгенерировать промежуточный файл", android.R.drawable.ic_menu_save, R.color.primary) { confirmGenerateIntermediate() },
-            MenuItem("Завершить сборку досрочно", android.R.drawable.ic_menu_close_clear_cancel, R.color.success) { confirmFinishEarly() }
+    private fun showItemActions(itemIndex: Int) {
+         val s = session ?: return
+         if (itemIndex >= s.items.size) return
+         
+         val item = s.items[itemIndex]
+         
+         showBottomSheet("Действия: ${item.sourceName}", listOf(
+            MenuItem("Изменить количество", android.R.drawable.ic_menu_edit, R.color.accent) { editItemQuantity(itemIndex) },
+            MenuItem("Пропустить позицию", android.R.drawable.ic_delete, R.color.error) { skipItem(itemIndex) },
+            MenuItem("След. коробка для ${item.sourceName}", android.R.drawable.ic_input_add, R.color.primary) { incrementBoxForSheet(item.sourceName) }
         ))
     }
     
-    private fun showActionsMenu() {
-        showBottomSheet("Действия", listOf(
-            MenuItem("Нет товара (Пропустить)", android.R.drawable.ic_delete, R.color.error) { onSkip() },
-            MenuItem("Изменить количество", android.R.drawable.ic_menu_edit, R.color.accent) { onChangeQuantity() },
-            MenuItem("Следующая коробка", android.R.drawable.ic_input_add, R.color.primary) { onNextBox() }
-        ))
-    }
-    
-    private fun onSkip() {
+    private fun skipItem(index: Int) {
         val s = session ?: return
-        if (s.currentIndex >= s.items.size) return
+        val item = s.items[index]
         
-        val item = s.items[s.currentIndex]
         item.status = ItemStatus.SKIPPED
         item.collectedQuantity = 0
         item.box = 0
         
-        s.currentIndex++
         sessionManager.saveSession(s)
         updateDisplay()
     }
 
-    private fun onChangeQuantity() {
+    private fun editItemQuantity(index: Int) {
         val s = session ?: return
-        if (s.currentIndex >= s.items.size) return
-        
-        val item = s.items[s.currentIndex]
+        val item = s.items[index]
+        val currentBox = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }
         
         val dialogView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null)
         val quantityInput = EditText(this).apply {
@@ -170,7 +179,7 @@ class AssemblyActivity : AppCompatActivity() {
         }
         val boxInput = EditText(this).apply {
             hint = "Номер коробки"
-            setText(s.currentBox.toString())
+            setText(currentBox.toString())
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
         }
         
@@ -182,7 +191,7 @@ class AssemblyActivity : AppCompatActivity() {
         }
         
         AlertDialog.Builder(this)
-            .setTitle("Изменить количество")
+            .setTitle("Изменить: ${item.sourceName}")
             .setView(layout)
             .setPositiveButton("Сохранить") { _, _ ->
                 try {
@@ -193,8 +202,8 @@ class AssemblyActivity : AppCompatActivity() {
                         item.status = ItemStatus.QUANTITY_CHANGED
                         item.collectedQuantity = newQty
                         item.box = newBox
-                        s.currentBox = newBox
-                        s.currentIndex++
+                        s.sheetBoxCounters[item.sourceName] = newBox // Update global counter for this sheet
+                        
                         sessionManager.saveSession(s)
                         updateDisplay()
                     }
@@ -206,12 +215,21 @@ class AssemblyActivity : AppCompatActivity() {
             .show()
     }
     
-    private fun onNextBox() {
+    private fun incrementBoxForSheet(sheetName: String) {
         val s = session ?: return
-        s.currentBox++
+        val current = s.sheetBoxCounters.getOrPut(sheetName) { 1 }
+        s.sheetBoxCounters[sheetName] = current + 1
         sessionManager.saveSession(s)
         updateDisplay()
-        Toast.makeText(this, "Начата коробка №${s.currentBox}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Коробка для $sheetName: ${current + 1}", Toast.LENGTH_SHORT).show()
+    }
+    
+    private fun onNextBox() {
+        val s = session ?: return
+        val currentItem = s.items.getOrNull(s.currentIndex) ?: return
+        
+        // Use the source of the current item
+        incrementBoxForSheet(currentItem.sourceName)
     }
     
     private fun saveSession() {

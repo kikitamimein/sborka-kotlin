@@ -192,9 +192,12 @@ class MainActivity : AppCompatActivity() {
                 return
             }
             
+            // Sort items by barcode to group parallel items together
+            val sortedItems = result.items.sortedWith(compareBy({ it.barcode }, { it.sourceName }))
+
             // Create session
             val session = AssemblySession(
-                items = result.items.toMutableList(),
+                items = sortedItems.toMutableList(),
                 shipmentInfo = result.shipmentInfo,
                 inputFilePath = uri.toString()
             )
