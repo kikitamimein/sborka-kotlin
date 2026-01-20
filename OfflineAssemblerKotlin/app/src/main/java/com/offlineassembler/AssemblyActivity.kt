@@ -85,35 +85,37 @@ class AssemblyActivity : AppCompatActivity() {
         binding.itemsContainer.removeAllViews()
         val inflater = LayoutInflater.from(this)
         
+        // If multi-sheet, add a header row for the group
+        if (!s.isSingleSheet) {
+            val headerView = inflater.inflate(R.layout.item_parallel_header, binding.itemsContainer, false)
+            binding.itemsContainer.addView(headerView)
+        }
+
         group.forEachIndexed { index, item ->
-            val itemView = inflater.inflate(android.R.layout.simple_list_item_2, binding.itemsContainer, false)
-            val title = itemView.findViewById<android.widget.TextView>(android.R.id.text1)
-            val subtitle = itemView.findViewById<android.widget.TextView>(android.R.id.text2)
+            val layoutRes = if (s.isSingleSheet) android.R.layout.simple_list_item_1 else R.layout.item_parallel_row
+            val itemView = inflater.inflate(layoutRes, binding.itemsContainer, false)
             
-            val sheetBox = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }
-            val sourceLabel = if (item.sourceName.isNotEmpty()) "[${item.sourceName}] " else ""
-            
-            // For single sheet, we show quantity big. For multi, we show source and confirm status.
             if (s.isSingleSheet) {
+                val title = itemView.findViewById<android.widget.TextView>(android.R.id.text1)
                 title.text = "${item.quantity} шт."
-                title.textSize = 48f // Same size as barcode/location
+                title.textSize = 64f // Even larger as requested
                 title.textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
-                subtitle.visibility = android.view.View.GONE
+                title.setTypeface(null, android.graphics.Typeface.BOLD)
+                title.setTextColor(resources.getColor(R.color.success, theme))
             } else {
-                title.text = "$sourceLabel${item.quantity} шт."
-                title.textSize = 24f
-                subtitle.text = "Коробка №$sheetBox"
+                val sourceText = itemView.findViewById<android.widget.TextView>(R.id.sourceText)
+                val boxText = itemView.findViewById<android.widget.TextView>(R.id.boxText)
+                val qtyText = itemView.findViewById<android.widget.TextView>(R.id.qtyText)
                 
-                // Add indicator if collected
+                sourceText.text = if (item.status != ItemStatus.PENDING) "✓ ${item.sourceName}" else item.sourceName
+                boxText.text = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }.toString()
+                qtyText.text = "${item.quantity} шт."
+                
                 if (item.status != ItemStatus.PENDING) {
-                    title.text = "✓ ${title.text}"
-                    title.setTextColor(resources.getColor(R.color.success, theme))
-                } else {
-                    title.setTextColor(resources.getColor(R.color.text_primary, theme))
+                    sourceText.setTextColor(resources.getColor(R.color.success, theme))
+                    qtyText.setTextColor(resources.getColor(R.color.success, theme))
                 }
             }
-            
-            title.setTypeface(null, android.graphics.Typeface.BOLD)
             
             itemView.setOnClickListener {
                 showItemActions(s.currentIndex + index)

@@ -50,27 +50,6 @@ class ExcelWriter(
                 rowNum++
             }
             
-            // 2. Summary Table (1 assembly - 1 line per box)
-            val summaryHeaderRow = sheet.createRow(rowNum++)
-            summaryHeaderRow.createCell(0).setCellValue("ОТЧЕТ ПО СБОРКЕ:")
-            
-            val summaryTableHead = sheet.createRow(rowNum++)
-            summaryTableHead.createCell(0).setCellValue("Отпр. №")
-            summaryTableHead.createCell(1).setCellValue("Кол-во")
-            summaryTableHead.createCell(2).setCellValue("Коробка")
-            
-            val boxes = items.filter { it.box > 0 }.map { it.box }.distinct().sorted()
-            
-            boxes.forEach { boxNum ->
-                val boxTotalQty = items.filter { it.box == boxNum }.sumOf { it.collectedQuantity }
-                if (boxTotalQty > 0) {
-                    val row = sheet.createRow(rowNum++)
-                    row.createCell(0).setCellValue(sourceName)
-                    row.createCell(1).setCellValue(boxTotalQty.toDouble())
-                    row.createCell(2).setCellValue(boxNum.toDouble())
-                }
-            }
-            rowNum++ // Spacing
             
             // 3. Detailed Box Breakdown
             boxes.forEach { boxNum ->
