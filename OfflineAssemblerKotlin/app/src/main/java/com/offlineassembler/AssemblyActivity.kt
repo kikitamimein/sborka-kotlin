@@ -155,19 +155,13 @@ class AssemblyActivity : AppCompatActivity() {
         val s = session ?: return
         if (s.currentIndex >= s.items.size) return
         
-        val currentBarcode = s.items[s.currentIndex].barcode
-        
-        // Find FIRST pending item in this barcode group
+        // Collect the item at current index if it's not already finished
         val itemToCollect = s.items.getOrNull(s.currentIndex)
         
-        if (itemToCollect != null && itemToCollect.status == ItemStatus.PENDING) {
+        if (itemToCollect != null && itemToCollect.status != ItemStatus.COLLECTED && itemToCollect.status != ItemStatus.SKIPPED) {
             itemToCollect.status = ItemStatus.COLLECTED
             itemToCollect.collectedQuantity = itemToCollect.quantity
             itemToCollect.box = s.sheetBoxCounters.getOrPut(itemToCollect.sourceName) { 1 }
-            
-            // Check if all items in this group are now done. 
-            // If yes, currentIndex will move forward automatically in updateDisplay() 
-            // when it skips non-pending items.
         }
         
         sessionManager.saveSession(s)
