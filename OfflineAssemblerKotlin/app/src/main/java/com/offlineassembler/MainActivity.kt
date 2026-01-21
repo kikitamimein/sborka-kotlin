@@ -192,22 +192,45 @@ class MainActivity : AppCompatActivity() {
                 return
             }
             
-            // Custom sort for locations: numeric first, then alphabetical
-            val sortedItems = result.items.sortedWith { item1, item2 ->
-                val loc1 = item1.location.trim()
-                val loc2 = item2.location.trim()
-                
-                val isNum1 = loc1.isNotEmpty() && loc1.all { it.isDigit() }
-                val isNum2 = loc2.isNotEmpty() && loc2.all { it.isDigit() }
-                
-                when {
-                    isNum1 && isNum2 -> loc1.toLong().compareTo(loc2.toLong())
-                    isNum1 && !isNum2 -> -1
-                    !isNum1 && isNum2 -> 1
-                    loc1 != loc2 -> loc1.compareTo(loc2)
-                    else -> item1.barcode.compareTo(item2.barcode).let {
-                        if (it != 0) it else item1.sourceName.compareTo(item2.sourceName)
+            // Natural sort for locations: splits strings into numeric and text parts
+            fun splitLocation(loc: String): List<Any> {
+                val result = mutableListOf<Any>()
+                var i = 0
+                while (i < loc.length) {
+                    val start = i
+                    if (loc[i].isDigit()) {
+                        while (i < loc.length && loc[i].isDigit()) i++
+                        result.add(loc.substring(start, i).toLong())
+                    } else {
+                        while (i < loc.length && !loc[i].isDigit()) i++
+                        result.add(loc.substring(start, i))
                     }
+                }
+                return result
+            }
+
+            val sortedItems = result.items.sortedWith { item1, item2 ->
+                val parts1 = splitLocation(item1.location.trim())
+                val parts2 = splitLocation(item2.location.trim())
+                
+                var cmp = 0
+                val size = minOf(parts1.size, parts2.size)
+                for (i in 0 until size) {
+                    val p1 = parts1[i]
+                    val p2 = parts2[i]
+                    
+                    if (p1 is Long && p2 is Long) {
+                        cmp = p1.compareTo(p2)
+                    } else {
+                        cmp = p1.toString().compareTo(p2.toString())
+                    }
+                    if (cmp != 0) break
+                }
+                
+                if (cmp == 0) cmp = parts1.size.compareTo(parts2.size)
+                
+                if (cmp != 0) cmp else item1.barcode.compareTo(item2.barcode).let {
+                    if (it != 0) it else item1.sourceName.compareTo(item2.sourceName)
                 }
             }
 
