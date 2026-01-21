@@ -187,9 +187,16 @@ class AssemblyActivity : AppCompatActivity() {
         val s = session ?: return
         val item = s.items[index]
         
-        item.status = ItemStatus.SKIPPED
-        item.collectedQuantity = 0
-        item.box = 0
+        if (item.collectedQuantity > 0) {
+            // If something was already collected (e.g. via scanner), 
+            // mark as COLLECTED to save the current progress and move to next item
+            item.status = ItemStatus.COLLECTED
+        } else {
+            // Nothing collected - full skip
+            item.status = ItemStatus.SKIPPED
+            item.collectedQuantity = 0
+            item.box = 0
+        }
         
         sessionManager.saveSession(s)
         updateDisplay()
@@ -316,6 +323,8 @@ class AssemblyActivity : AppCompatActivity() {
             val identifier = item.barcode.ifEmpty { "Арт: ${item.article}" }
             when {
                 item.status == ItemStatus.SKIPPED -> "Пропущено: $identifier - ${item.quantity} шт."
+                item.status == ItemStatus.COLLECTED && item.collectedQuantity != item.quantity ->
+                    "Частично: $identifier было ${item.quantity}, собрано ${item.collectedQuantity}"
                 item.status == ItemStatus.QUANTITY_CHANGED && item.collectedQuantity != item.quantity ->
                     "Изменено: $identifier было ${item.quantity}, стало ${item.collectedQuantity}"
                 else -> null
