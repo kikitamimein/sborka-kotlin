@@ -64,7 +64,6 @@ class AssemblyActivity : AppCompatActivity() {
         while (s.currentIndex < s.items.size) {
             val item = s.items[s.currentIndex]
             val isDone = item.status == ItemStatus.COLLECTED || 
-                         (item.status == ItemStatus.QUANTITY_CHANGED && item.collectedQuantity >= item.quantity) ||
                          item.status == ItemStatus.SKIPPED
             if (isDone) {
                 s.currentIndex++
@@ -86,16 +85,19 @@ class AssemblyActivity : AppCompatActivity() {
         binding.nameText.text = currentItem.name
         binding.locationText.text = currentItem.location.ifEmpty { "---" }
         
-        // Show last 4 digits of barcode
         val barcodeLast4 = if (currentItem.barcode.length >= 4) 
             currentItem.barcode.takeLast(4) 
         else 
             currentItem.barcode
         binding.barcodeText.text = barcodeLast4.ifEmpty { "----" }
 
-        val totalUnits = s.items.sumOf { it.quantity }
-        val collectedUnits = s.items.sumOf { it.collectedQuantity }
-        binding.progressText.text = "$collectedUnits / $totalUnits шт."
+        // Position counter based on unique locations
+        val allLocations = s.items.map { it.location }.distinct()
+        val totalCells = allLocations.size
+        val currentCellIndex = allLocations.indexOf(currentItem.location) + 1
+        
+        binding.progressText.visibility = android.view.View.VISIBLE
+        binding.progressText.text = "$currentCellIndex / $totalCells"
         
         binding.itemsContainer.removeAllViews()
         val inflater = LayoutInflater.from(this)
@@ -226,7 +228,7 @@ class AssemblyActivity : AppCompatActivity() {
                     val newBox = boxInput.text.toString().toInt()
                     
                     if (newQty >= 0 && newBox >= 1) {
-                        item.status = ItemStatus.QUANTITY_CHANGED
+                        item.status = ItemStatus.COLLECTED
                         item.collectedQuantity = newQty
                         item.box = newBox
                         s.sheetBoxCounters[item.sourceName] = newBox // Update global counter for this sheet
