@@ -60,9 +60,17 @@ class AssemblyActivity : AppCompatActivity() {
     private fun updateDisplay() {
         val s = session ?: return
         
-        // Find next pending item
-        while (s.currentIndex < s.items.size && s.items[s.currentIndex].status != ItemStatus.PENDING) {
-            s.currentIndex++
+        // Find next item that needs collection (PENDING or partially COLLECTED)
+        while (s.currentIndex < s.items.size) {
+            val item = s.items[s.currentIndex]
+            val isDone = item.status == ItemStatus.COLLECTED || 
+                         (item.status == ItemStatus.QUANTITY_CHANGED && item.collectedQuantity >= item.quantity) ||
+                         item.status == ItemStatus.SKIPPED
+            if (isDone) {
+                s.currentIndex++
+            } else {
+                break
+            }
         }
         
         if (s.currentIndex >= s.items.size) {
@@ -102,9 +110,11 @@ class AssemblyActivity : AppCompatActivity() {
             val layoutRes = if (s.isSingleSheet) android.R.layout.simple_list_item_1 else R.layout.item_parallel_row
             val itemView = inflater.inflate(layoutRes, binding.itemsContainer, false)
             
+            val remaining = item.quantity - item.collectedQuantity
+
             if (s.isSingleSheet) {
                 val title = itemView.findViewById<android.widget.TextView>(android.R.id.text1)
-                title.text = "${item.quantity} шт."
+                title.text = "$remaining шт."
                 title.textSize = 48f
                 title.textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
                 title.setTypeface(null, android.graphics.Typeface.BOLD)
@@ -114,11 +124,11 @@ class AssemblyActivity : AppCompatActivity() {
                 val boxText = itemView.findViewById<android.widget.TextView>(R.id.boxText)
                 val qtyText = itemView.findViewById<android.widget.TextView>(R.id.qtyText)
                 
-                sourceText.text = if (item.status != ItemStatus.PENDING) "✓ ${item.sourceName}" else item.sourceName
+                sourceText.text = if (item.status != ItemStatus.PENDING && remaining == 0) "✓ ${item.sourceName}" else item.sourceName
                 boxText.text = s.sheetBoxCounters.getOrPut(item.sourceName) { 1 }.toString()
-                qtyText.text = "${item.quantity} шт."
+                qtyText.text = "$remaining шт."
                 
-                if (item.status != ItemStatus.PENDING) {
+                if (remaining == 0) {
                     sourceText.setTextColor(resources.getColor(R.color.success, theme))
                     qtyText.setTextColor(resources.getColor(R.color.success, theme))
                 }

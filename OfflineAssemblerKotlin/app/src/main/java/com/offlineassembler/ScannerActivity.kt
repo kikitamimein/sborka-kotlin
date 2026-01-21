@@ -149,7 +149,6 @@ class ScannerActivity : AppCompatActivity() {
         val s = session ?: return
         
         // Find the first item with this barcode that is not yet fully collected
-        // We look for PENDING items first, then for QUANTITY_CHANGED items where collected < quantity
         var foundItem: AssemblyItem? = null
         var foundIndex: Int = -1
 
@@ -167,17 +166,21 @@ class ScannerActivity : AppCompatActivity() {
             currentItem = foundItem
             currentItemIndex = foundIndex
             showItemInfo(foundItem)
+            binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame)
         } else {
             // Check if it exists at all but is already collected
-            val exists = s.items.any { it.barcode == barcode }
-            if (exists) {
-                // Toast.makeText(this, "Товар уже полностью собран", Toast.LENGTH_SHORT).show()
-            } else {
-                // Toast.makeText(this, "Штрихкод не найден в сборке", Toast.LENGTH_SHORT).show()
+            val exists = s.items.any { it.barcode == barcode && it.status != ItemStatus.SKIPPED }
+            if (!exists) {
+                binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame_error)
+                // Reset frame to green after 1.5 seconds
+                binding.scanOverlay.removeCallbacks(resetFrameRunnable)
+                binding.scanOverlay.postDelayed(resetFrameRunnable, 1500)
             }
-            // If item card is showing and we scan something else that's not found, maybe hide it?
-            // Actually, keep showing if it was already matched, or hide if it's a new unknown scan.
         }
+    }
+
+    private val resetFrameRunnable = Runnable {
+        binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame)
     }
 
     private fun showItemInfo(item: AssemblyItem) {
