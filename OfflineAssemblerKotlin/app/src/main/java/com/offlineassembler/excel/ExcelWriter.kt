@@ -64,12 +64,10 @@ class ExcelWriter(
             
             val dataStartRow = 2
             
-            // 2. "Uncollected" block (Column 0) - now includes partial collections
+            // 2. "Uncollected" block (Column 0) - only items with 0 collected
             val uncollected = items.filter { 
-                it.status == ItemStatus.SKIPPED || 
-                it.status == ItemStatus.PENDING || 
-                (it.status == ItemStatus.COLLECTED && it.collectedQuantity < it.quantity) ||
-                (it.status == ItemStatus.QUANTITY_CHANGED && it.collectedQuantity < it.quantity)
+                (it.status == ItemStatus.SKIPPED || it.status == ItemStatus.PENDING || it.status == ItemStatus.COLLECTED || it.status == ItemStatus.QUANTITY_CHANGED) 
+                && it.collectedQuantity == 0 
             }
             
             var unRowNum = dataStartRow
@@ -89,13 +87,7 @@ class ExcelWriter(
             
             uncollected.forEach { item ->
                 val row = sheet.getRow(unRowNum) ?: sheet.createRow(unRowNum)
-                val missingQty = item.quantity - item.collectedQuantity
-                val cellValue = if (item.collectedQuantity > 0) {
-                    "${item.barcode.ifEmpty { item.article }} (не добор $missingQty шт.)"
-                } else {
-                    item.barcode.ifEmpty { item.article }
-                }
-                row.createCell(0).setCellValue(cellValue)
+                row.createCell(0).setCellValue(item.barcode.ifEmpty { item.article })
                 unRowNum++
             }
             
