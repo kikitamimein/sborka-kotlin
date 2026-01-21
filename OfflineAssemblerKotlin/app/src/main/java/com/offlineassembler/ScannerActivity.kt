@@ -143,44 +143,48 @@ class ScannerActivity : AppCompatActivity() {
     private var lastScannedBarcode: String = ""
 
     private fun onBarcodeScanned(barcode: String) {
-        if (barcode == lastScannedBarcode && binding.itemCard.visibility == View.VISIBLE) return
-        lastScannedBarcode = barcode
+        // Extend the "colored" state
+        binding.scanOverlay.removeCallbacks(resetFrameRunnable)
+        binding.scanOverlay.postDelayed(resetFrameRunnable, 800)
         
         val s = session ?: return
         
-        // Find the first item with this barcode that is not yet fully collected
-        var foundItem: AssemblyItem? = null
+        var foundToCollect: AssemblyItem? = null
         var foundIndex: Int = -1
 
-        // Look for items in the order they appear in the session
         for (i in s.items.indices) {
             val item = s.items[i]
             if (item.barcode == barcode && item.collectedQuantity < item.quantity) {
-                foundItem = item
+                foundToCollect = item
                 foundIndex = i
                 break
             }
         }
 
-        if (foundItem != null) {
-            currentItem = foundItem
-            currentItemIndex = foundIndex
-            showItemInfo(foundItem)
+        if (foundToCollect != null) {
+            // Case 1: Matching found and needs collection -> GREEN
             binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame)
+            if (barcode != lastScannedBarcode || binding.itemCard.visibility != View.VISIBLE) {
+                lastScannedBarcode = barcode
+                currentItem = foundToCollect
+                currentItemIndex = foundIndex
+                showItemInfo(foundToCollect)
+            }
         } else {
-            // Check if it exists at all but is already collected
-            val exists = s.items.any { it.barcode == barcode && it.status != ItemStatus.SKIPPED }
-            if (!exists) {
+            // Case 2: Either not in session or already collected
+            val existsAtAll = s.items.any { it.barcode == barcode }
+            if (existsAtAll) {
+                // Case 2.1: Exists but fully collected -> WHITE
+                binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame_white)
+            } else {
+                // Case 2.2: Not in assembly -> RED
                 binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame_error)
-                // Reset frame to green after 1.5 seconds
-                binding.scanOverlay.removeCallbacks(resetFrameRunnable)
-                binding.scanOverlay.postDelayed(resetFrameRunnable, 1500)
             }
         }
     }
 
     private val resetFrameRunnable = Runnable {
-        binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame)
+        binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame_white)
     }
 
     private fun showItemInfo(item: AssemblyItem) {

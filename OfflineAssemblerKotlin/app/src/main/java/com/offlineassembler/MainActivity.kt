@@ -192,8 +192,24 @@ class MainActivity : AppCompatActivity() {
                 return
             }
             
-            // Sort items by barcode to group parallel items together
-            val sortedItems = result.items.sortedWith(compareBy({ it.barcode }, { it.sourceName }))
+            // Custom sort for locations: numeric first, then alphabetical
+            val sortedItems = result.items.sortedWith { item1, item2 ->
+                val loc1 = item1.location.trim()
+                val loc2 = item2.location.trim()
+                
+                val isNum1 = loc1.isNotEmpty() && loc1.all { it.isDigit() }
+                val isNum2 = loc2.isNotEmpty() && loc2.all { it.isDigit() }
+                
+                when {
+                    isNum1 && isNum2 -> loc1.toLong().compareTo(loc2.toLong())
+                    isNum1 && !isNum2 -> -1
+                    !isNum1 && isNum2 -> 1
+                    loc1 != loc2 -> loc1.compareTo(loc2)
+                    else -> item1.barcode.compareTo(item2.barcode).let {
+                        if (it != 0) it else item1.sourceName.compareTo(item2.sourceName)
+                    }
+                }
+            }
 
             // Create session
             val session = AssemblySession(
