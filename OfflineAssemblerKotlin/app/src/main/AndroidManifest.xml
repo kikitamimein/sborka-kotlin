@@ -3,6 +3,7 @@
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -46,6 +47,11 @@
             
         <activity
             android:name=".CompletionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OfflineAssembler" />
+
+        <activity
+            android:name=".ScannerActivity"
             android:exported="false"
             android:theme="@style/Theme.OfflineAssembler" />
             

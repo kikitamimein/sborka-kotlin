@@ -173,17 +173,30 @@
                 android:id="@+id/actionsButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="32dp"
-                android:layout_marginEnd="32dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 android:src="@android:drawable/ic_menu_manage"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="@color/text_secondary"
                 android:contentDescription="Действия" />
 
             <ImageButton
+                android:id="@+id/scannerButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:src="@android:drawable/ic_menu_camera"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="@color/primary"
+                android:contentDescription="Сканер" />
+
+            <ImageButton
                 android:id="@+id/listButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 android:src="@android:drawable/ic_menu_agenda"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="@color/text_secondary"

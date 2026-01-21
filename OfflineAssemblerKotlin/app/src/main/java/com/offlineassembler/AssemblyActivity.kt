@@ -49,6 +49,12 @@ class AssemblyActivity : AppCompatActivity() {
         binding.actionsButton.setOnClickListener { showActionsMenu() }
         binding.saveButton.setOnClickListener { saveSession() }
         binding.listButton.setOnClickListener { showReviewList() }
+        binding.scannerButton.setOnClickListener { launchScanner() }
+    }
+    
+    private fun launchScanner() {
+        val intent = Intent(this, ScannerActivity::class.java)
+        startActivity(intent)
     }
     
     private fun updateDisplay() {
@@ -78,10 +84,11 @@ class AssemblyActivity : AppCompatActivity() {
         else 
             currentItem.barcode
         binding.barcodeText.text = barcodeLast4.ifEmpty { "----" }
+
+        val totalUnits = s.items.sumOf { it.quantity }
+        val collectedUnits = s.items.sumOf { it.collectedQuantity }
+        binding.progressText.text = "$collectedUnits / $totalUnits шт."
         
-        binding.progressText.text = "${s.currentIndex + 1} / ${s.items.size}"
-        
-        // Update items list
         binding.itemsContainer.removeAllViews()
         val inflater = LayoutInflater.from(this)
         
