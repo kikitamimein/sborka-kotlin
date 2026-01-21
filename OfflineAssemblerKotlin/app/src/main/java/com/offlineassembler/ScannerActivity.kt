@@ -184,8 +184,11 @@ class ScannerActivity : AppCompatActivity() {
         binding.itemCard.visibility = View.VISIBLE
         binding.itemName.text = item.name
         binding.itemLocation.text = "Место: ${item.location.ifEmpty { "---" }}"
-        binding.itemBarcode.text = "ШК: ${item.barcode}"
-        binding.itemQuantity.text = "Нужно: ${item.quantity} шт. (Собрано: ${item.collectedQuantity})"
+        
+        val barcodeLast4 = if (item.barcode.length >= 4) item.barcode.takeLast(4) else item.barcode
+        binding.itemBarcode.text = "ШК: $barcodeLast4"
+        
+        binding.itemQuantity.text = "${item.collectedQuantity} / ${item.quantity}"
         
         if (item.collectedQuantity >= item.quantity) {
              binding.addButton.isEnabled = false
