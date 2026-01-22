@@ -8,12 +8,10 @@
     app:cardCornerRadius="12dp">
 
     <LinearLayout
-        android:id="@+id/productClickArea"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp"
-        android:background="?attr/selectableItemBackground">
+        android:padding="16dp">
         
         <TextView
             android:id="@+id/productName"
@@ -23,52 +21,42 @@
             android:textColor="@color/text_primary"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:maxLines="2"
-            android:ellipsize="end" />
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:background="?attr/selectableItemBackground"
+            android:padding="4dp" />
             
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
+            android:layout_marginTop="12dp"
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/productArticle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Арт: 123"
+                android:text="Арт: NNK3Uni123"
                 android:textColor="@color/primary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" | "
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <TextView
                 android:id="@+id/productBarcode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ШК: 456"
+                android:layout_marginTop="4dp"
+                android:text="ШК: 2037635360955"
                 android:textColor="@color/success"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" | "
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <TextView
                 android:id="@+id/productLocation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="M: 789"
+                android:layout_marginTop="4dp"
+                android:text="Место: 13.4"
                 android:textColor="@color/accent"
                 android:textSize="14sp"
                 android:textStyle="bold" />

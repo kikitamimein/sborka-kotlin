@@ -134,7 +134,6 @@ class AllItemsActivity : AppCompatActivity() {
             val article: TextView = view.findViewById(R.id.productArticle)
             val barcode: TextView = view.findViewById(R.id.productBarcode)
             val location: TextView = view.findViewById(R.id.productLocation)
-            val clickArea: View = view.findViewById(R.id.productClickArea)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -147,8 +146,8 @@ class AllItemsActivity : AppCompatActivity() {
             holder.name.text = item.name
             holder.article.text = "Арт: ${item.article}"
             holder.barcode.text = "ШК: ${item.barcode}"
-            holder.location.text = "М: ${item.location.ifEmpty { "---" }}"
-            holder.clickArea.setOnClickListener { onPrint(item) }
+            holder.location.text = "Место: ${item.location.ifEmpty { "---" }}"
+            holder.name.setOnClickListener { onPrint(item) }
         }
 
         override fun getItemCount() = items.size
