@@ -55,6 +55,12 @@
             android:name=".ScannerActivity"
             android:exported="false"
             android:theme="@style/Theme.OfflineAssembler" />
+
+        <activity
+            android:name=".AllItemsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OfflineAssembler"
+            android:windowSoftInputMode="adjustPan" />
             
         <provider
             android:name="androidx.core.content.FileProvider"

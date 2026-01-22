@@ -73,13 +73,15 @@ class MainActivity : AppCompatActivity() {
         binding.continueSessionButton.setOnClickListener {
             startAssembly()
         }
-        
-        adapter = FileListAdapter { uri ->
-            processExcelFile(uri)
+
+        binding.allItemsButton.setOnClickListener {
+            val intent = Intent(this, AllItemsActivity::class.java)
+            startActivity(intent)
         }
         
-        binding.fileList.layoutManager = LinearLayoutManager(this)
-        binding.fileList.adapter = adapter
+        // Hide fileList related stuff as we want a cleaner main screen
+        binding.fileList.visibility = View.GONE
+        binding.subtitleText.visibility = View.GONE
         
         // Check for saved session
         if (sessionManager.hasSession()) {
@@ -89,49 +91,17 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun refreshFileList() {
+        // Updated: only update folder select button visibility
         val inputUriString = prefsManager.inputFolderUri
+        binding.selectFolderButton.visibility = if (inputUriString == null) View.VISIBLE else View.GONE
         
-        if (inputUriString == null) {
-            binding.fileList.visibility = View.GONE
-            binding.emptyView.visibility = View.GONE
-            binding.selectFolderButton.visibility = View.VISIBLE
-            binding.subtitleText.text = "Выберите рабочую папку"
-            return
-        }
-        
-        binding.selectFolderButton.visibility = View.GONE
-        binding.fileList.visibility = View.VISIBLE
-        binding.subtitleText.text = "Выберите файл для начала"
-        
-        try {
+        // Update subtitle to show selected folder info if any
+        if (inputUriString != null) {
             val inputUri = Uri.parse(inputUriString)
             val dir = DocumentFile.fromTreeUri(this, inputUri)
-            
-            if (dir == null || !dir.canRead()) {
-                // Permission lost or folder deleted
-                prefsManager.inputFolderUri = null
-                refreshFileList()
-                return
-            }
-            
-            val files = dir.listFiles()
-                .filter { it.name?.endsWith(".xlsx", ignoreCase = true) == true || it.name?.endsWith(".xls", ignoreCase = true) == true }
-                .sortedByDescending { it.lastModified() }
-                
-            if (files.isEmpty()) {
-                binding.emptyView.visibility = View.VISIBLE
-                binding.fileList.visibility = View.GONE
-                binding.emptyView.text = "В папке нет Excel файлов"
-            } else {
-                binding.emptyView.visibility = View.GONE
-                binding.fileList.visibility = View.VISIBLE
-                adapter.submitList(files)
-            }
-            
-        } catch (e: Exception) {
-            Toast.makeText(this, "Ошибка доступа к папке: ${e.message}", Toast.LENGTH_SHORT).show()
-            prefsManager.inputFolderUri = null
-            refreshFileList()
+            binding.titleText.text = "Сборщик"
+            binding.subtitleText.visibility = View.VISIBLE
+            binding.subtitleText.text = "Папка: ${dir?.name ?: "..."}"
         }
     }
     
@@ -157,17 +127,83 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showSettingsDialog() {
-        val options = arrayOf("Выбрать папку с файлами (Вход)", "Выбрать папку для сохранения (Выход)")
+        val options = arrayOf(
+            "Выбрать файл для сборки",
+            "Выбрать папку Вход (${DocumentFile.fromTreeUri(this, Uri.parse(prefsManager.inputFolderUri ?: ""))?.name ?: "нет"})",
+            "Выбрать папку Выход (${DocumentFile.fromTreeUri(this, Uri.parse(prefsManager.outputFolderUri ?: ""))?.name ?: "нет"})",
+            "Настройки принтера (${prefsManager.printerIp}:${prefsManager.printerPort})"
+        )
         
         AlertDialog.Builder(this)
-            .setTitle("Настройки папок")
+            .setTitle("Настройки")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> inputFolderLauncher.launch(null)
-                    1 -> outputFolderLauncher.launch(null)
+                    0 -> showFileSelectionDialog()
+                    1 -> inputFolderLauncher.launch(null)
+                    2 -> outputFolderLauncher.launch(null)
+                    3 -> showPrinterSettingsDialog()
                 }
             }
             .setPositiveButton("Закрыть", null)
+            .show()
+    }
+
+    private fun showPrinterSettingsDialog() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(64, 32, 64, 32)
+        }
+
+        val ipInput = android.widget.EditText(this).apply {
+            hint = "IP Адрес"
+            setText(prefsManager.printerIp)
+        }
+        val portInput = android.widget.EditText(this).apply {
+            hint = "Порт"
+            setText(prefsManager.printerPort.toString())
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        }
+
+        layout.addView(ipInput)
+        layout.addView(portInput)
+
+        AlertDialog.Builder(this)
+            .setTitle("Принтер")
+            .setView(layout)
+            .setPositiveButton("Сохранить") { _, _ ->
+                prefsManager.printerIp = ipInput.text.toString()
+                prefsManager.printerPort = portInput.text.toString().toIntOrNull() ?: 9100
+                Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun showFileSelectionDialog() {
+        val inputUriString = prefsManager.inputFolderUri
+        if (inputUriString == null) {
+            Toast.makeText(this, "Сначала выберите папку Вход", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val inputUri = Uri.parse(inputUriString)
+        val dir = DocumentFile.fromTreeUri(this, inputUri)
+        val files = dir?.listFiles()
+            ?.filter { it.name?.endsWith(".xlsx", ignoreCase = true) == true || it.name?.endsWith(".xls", ignoreCase = true) == true }
+            ?.sortedByDescending { it.lastModified() } ?: emptyList()
+
+        if (files.isEmpty()) {
+            Toast.makeText(this, "В папке нет Excel файлов", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val fileNames = files.map { it.name ?: "Unknown" }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Выберите файл")
+            .setItems(fileNames) { _, which ->
+                processExcelFile(files[which].uri)
+            }
             .show()
     }
     

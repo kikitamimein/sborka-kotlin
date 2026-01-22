@@ -15,9 +15,19 @@ class PrefsManager(context: Context) {
         get() = prefs.getString(KEY_OUTPUT_FOLDER, null)
         set(value) = prefs.edit().putString(KEY_OUTPUT_FOLDER, value).apply()
         
+    var printerIp: String
+        get() = prefs.getString(KEY_PRINTER_IP, "10.0.0.167") ?: "10.0.0.167"
+        set(value) = prefs.edit().putString(KEY_PRINTER_IP, value).apply()
+        
+    var printerPort: Int
+        get() = prefs.getInt(KEY_PRINTER_PORT, 9100)
+        set(value) = prefs.edit().putInt(KEY_PRINTER_PORT, value).apply()
+        
     companion object {
         private const val PREFS_NAME = "offline_assembler_settings"
         private const val KEY_INPUT_FOLDER = "input_folder_uri"
         private const val KEY_OUTPUT_FOLDER = "output_folder_uri"
+        private const val KEY_PRINTER_IP = "printer_ip"
+        private const val KEY_PRINTER_PORT = "printer_port"
     }
 }
