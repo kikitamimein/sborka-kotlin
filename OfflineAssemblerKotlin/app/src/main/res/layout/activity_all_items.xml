@@ -44,7 +44,7 @@
         android:layout_width="0dp"
         android:layout_height="56dp"
         android:layout_marginTop="16dp"
-        android:background="@drawable/item_parallel_header"
+        android:background="@drawable/bg_search_box"
         android:hint="Поиск по артикулу или ШК"
         android:paddingHorizontal="16dp"
         android:textColor="@color/text_primary"
