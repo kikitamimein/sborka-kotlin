@@ -1,8 +1,10 @@
 package com.offlineassembler
 
+import android.content.Context
 import android.util.Log
 import android.view.View
 import com.google.android.material.snackbar.Snackbar
+import com.offlineassembler.data.PrefsManager
 import com.offlineassembler.model.AssemblyItem
 import java.io.OutputStream
 import java.net.InetSocketAddress
@@ -58,6 +60,7 @@ object PrinterService {
                 val barcode = item.barcode
 
                 // Center alignment and settings
+                val tspl = StringBuilder()
                 tspl.append("SIZE 55 mm, 40 mm\r\n")
                 tspl.append("GAP 3 mm, 0\r\n")
                 tspl.append("DIRECTION 1\r\n")
