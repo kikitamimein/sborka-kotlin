@@ -1,6 +1,8 @@
 package com.offlineassembler
 
 import android.util.Log
+import android.view.View
+import com.google.android.material.snackbar.Snackbar
 import com.offlineassembler.model.AssemblyItem
 import java.io.OutputStream
 import java.net.InetSocketAddress
@@ -11,7 +13,15 @@ object PrinterService {
     private const val PRINTER_IP = "10.0.0.167"
     private const val PRINTER_PORT = 9100
 
-    fun printBarcode(item: AssemblyItem) {
+    fun showPrintConfirmation(view: View, item: AssemblyItem) {
+        Snackbar.make(view, "Распечатать штрихкод?", Snackbar.LENGTH_LONG)
+            .setAction("ПЕЧАТЬ") {
+                printBarcode(item)
+            }
+            .show()
+    }
+
+    private fun printBarcode(item: AssemblyItem) {
         thread {
             try {
                 val socket = Socket()
@@ -22,14 +32,12 @@ object PrinterService {
                     item.name.replace(item.barcode, "").trim()
                 } else {
                     item.name
-                }.take(100) // Limit length just in case
+                }.take(100)
 
                 val article = item.article
                 val barcode = item.barcode
 
-                // TSPL Commands for 55x40mm
-                // Width 55mm ~ 440 dots
-                // Height 40mm ~ 320 dots
+                // TSPL Commands for 55x40mm (440x320 dots at 203 DPI)
                 val tspl = StringBuilder()
                 tspl.append("SIZE 55 mm, 40 mm\r\n")
                 tspl.append("GAP 3 mm, 0\r\n")
@@ -37,16 +45,20 @@ object PrinterService {
                 tspl.append("CLS\r\n")
                 tspl.append("CODEPAGE UTF-8\r\n")
 
-                // Top description: small font
+                // 1. Top description: small font (Font 1, 8x12 dots)
                 tspl.append("TEXT 10,10,\"1\",0,1,1,\"$description\"\r\n")
 
-                // Middle Barcode: height modified to ~240 to fit readable text and spacing
+                // 2. Middle Barcode: narrow=3 to fill width better
+                // Using human_readable=0 to manually print larger text below
                 if (barcode.isNotEmpty()) {
-                    tspl.append("BARCODE 10,30,\"128\",240,1,0,2,4,\"$barcode\"\r\n")
+                    tspl.append("BARCODE 10,30,\"128\",200,0,0,3,6,\"$barcode\"\r\n")
+                    
+                    // 3. Barcode digits 2x larger (Font 2 is 12x20, x2 becomes 24x40)
+                    tspl.append("TEXT 10,240,\"2\",0,2,2,\"$barcode\"\r\n")
                 }
 
-                // Bottom Article
-                tspl.append("TEXT 10,295,\"1\",0,1,1,\"Арт: $article\"\r\n")
+                // 4. Bottom Article
+                tspl.append("TEXT 10,300,\"1\",0,1,1,\"Арт: $article\"\r\n")
 
                 tspl.append("PRINT 1,1\r\n")
 

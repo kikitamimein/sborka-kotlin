@@ -84,8 +84,7 @@ class AssemblyActivity : AppCompatActivity() {
         
         binding.nameText.text = currentItem.name
         binding.nameText.setOnClickListener { 
-            PrinterService.printBarcode(currentItem)
-            Toast.makeText(this, "Печать: ${currentItem.barcode}", Toast.LENGTH_SHORT).show()
+            PrinterService.showPrintConfirmation(it, currentItem)
         }
         
         binding.locationText.text = currentItem.location.ifEmpty { "---" }
@@ -96,8 +95,7 @@ class AssemblyActivity : AppCompatActivity() {
             currentItem.barcode
         binding.barcodeText.text = barcodeLast4.ifEmpty { "----" }
         binding.barcodeText.setOnClickListener { 
-            PrinterService.printBarcode(currentItem)
-            Toast.makeText(this, "Печать: ${currentItem.barcode}", Toast.LENGTH_SHORT).show()
+            PrinterService.showPrintConfirmation(it, currentItem)
         }
 
         // Position counter based on unique locations
