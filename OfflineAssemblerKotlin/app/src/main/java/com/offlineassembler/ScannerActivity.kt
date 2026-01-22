@@ -190,10 +190,19 @@ class ScannerActivity : AppCompatActivity() {
     private fun showItemInfo(item: AssemblyItem) {
         binding.itemCard.visibility = View.VISIBLE
         binding.itemName.text = item.name
+        binding.itemName.setOnClickListener { 
+            PrinterService.printBarcode(item)
+            Toast.makeText(this, "Печать: ${item.barcode}", Toast.LENGTH_SHORT).show()
+        }
+        
         binding.itemLocation.text = "Место: ${item.location.ifEmpty { "---" }}"
         
         val barcodeLast4 = if (item.barcode.length >= 4) item.barcode.takeLast(4) else item.barcode
         binding.itemBarcode.text = "ШК: $barcodeLast4"
+        binding.itemBarcode.setOnClickListener { 
+            PrinterService.printBarcode(item)
+            Toast.makeText(this, "Печать: ${item.barcode}", Toast.LENGTH_SHORT).show()
+        }
         
         binding.itemQuantity.text = "${item.collectedQuantity} / ${item.quantity}"
         

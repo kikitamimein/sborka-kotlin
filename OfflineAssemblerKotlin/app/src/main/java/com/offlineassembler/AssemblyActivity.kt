@@ -83,6 +83,11 @@ class AssemblyActivity : AppCompatActivity() {
         val group = s.items.drop(s.currentIndex).takeWhile { it.barcode == currentBarcode }
         
         binding.nameText.text = currentItem.name
+        binding.nameText.setOnClickListener { 
+            PrinterService.printBarcode(currentItem)
+            Toast.makeText(this, "Печать: ${currentItem.barcode}", Toast.LENGTH_SHORT).show()
+        }
+        
         binding.locationText.text = currentItem.location.ifEmpty { "---" }
         
         val barcodeLast4 = if (currentItem.barcode.length >= 4) 
@@ -90,6 +95,10 @@ class AssemblyActivity : AppCompatActivity() {
         else 
             currentItem.barcode
         binding.barcodeText.text = barcodeLast4.ifEmpty { "----" }
+        binding.barcodeText.setOnClickListener { 
+            PrinterService.printBarcode(currentItem)
+            Toast.makeText(this, "Печать: ${currentItem.barcode}", Toast.LENGTH_SHORT).show()
+        }
 
         // Position counter based on unique locations
         val allLocations = s.items.map { it.location }.distinct()
