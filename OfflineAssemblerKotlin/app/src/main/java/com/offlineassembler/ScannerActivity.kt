@@ -45,10 +45,15 @@ class ScannerActivity : AppCompatActivity() {
         sessionManager = SessionManager(this)
         session = sessionManager.loadSession()
 
-        if (session == null) {
+        if (session == null && !intent.getBooleanExtra("SEARCH_MODE", false)) {
             Toast.makeText(this, "Сессия не найдена", Toast.LENGTH_SHORT).show()
             finish()
             return
+        }
+
+        val isSearchMode = intent.getBooleanExtra("SEARCH_MODE", false)
+        if (isSearchMode) {
+            binding.totalProgress.visibility = View.GONE
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -143,6 +148,13 @@ class ScannerActivity : AppCompatActivity() {
     private var lastScannedBarcode: String = ""
 
     private fun onBarcodeScanned(barcode: String) {
+        if (intent.getBooleanExtra("SEARCH_MODE", false)) {
+            val data = Intent().apply { putExtra("SCAN_RESULT", barcode) }
+            setResult(RESULT_OK, data)
+            finish()
+            return
+        }
+
         // Extend the "colored" state
         binding.scanOverlay.removeCallbacks(resetFrameRunnable)
         binding.scanOverlay.postDelayed(resetFrameRunnable, 800)

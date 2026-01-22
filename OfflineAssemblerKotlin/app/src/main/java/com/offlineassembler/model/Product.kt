@@ -10,5 +10,8 @@ data class Product(
     val name: String,
     
     @SerializedName("barcode")
-    val barcode: String = ""
+    val barcode: String = "",
+    
+    @SerializedName("location")
+    val location: String = ""
 )

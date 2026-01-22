@@ -33,6 +33,15 @@ class AllItemsActivity : AppCompatActivity() {
         }
     }
 
+    private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val barcode = result.data?.getStringExtra("SCAN_RESULT") ?: ""
+            if (barcode.isNotEmpty()) {
+                binding.searchEditText.setText(barcode)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAllItemsBinding.inflate(layoutInflater)
@@ -70,9 +79,10 @@ class AllItemsActivity : AppCompatActivity() {
         })
 
         binding.scanSearchButton.setOnClickListener {
-            // Reusing ScannerActivity for generalized scan? Or a simple one here?
-            // For now, let's just toast
-            Toast.makeText(this, "Функция сканирования в поиске скоро будет", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, ScannerActivity::class.java).apply {
+                putExtra("SEARCH_MODE", true)
+            }
+            scanLauncher.launch(intent)
         }
     }
 
@@ -89,7 +99,12 @@ class AllItemsActivity : AppCompatActivity() {
                 inputStream.close()
 
                 val products = result.items.map { 
-                    Product(article = it.article, name = it.name, barcode = it.barcode)
+                    Product(
+                        article = it.article, 
+                        name = it.name, 
+                        barcode = it.barcode,
+                        location = it.location
+                    )
                 }.distinctBy { it.barcode.ifEmpty { it.article } }
 
                 db.saveProducts(products)
@@ -128,7 +143,7 @@ class AllItemsActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
             holder.name.text = item.name
-            holder.details.text = "Арт: ${item.article} | ШК: ${item.barcode}"
+            holder.details.text = "Арт: ${item.article} | ШК: ${item.barcode}\nМесто: ${item.location.ifEmpty { "---" }}"
             holder.printBtn.setOnClickListener { onPrint(item) }
         }
 

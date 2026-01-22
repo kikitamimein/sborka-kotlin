@@ -6,4 +6,13 @@
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/surface</item>
     </style>
+
+    <style name="TransparentBottomSheetDialog" parent="Theme.Material3.Dark.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/TransparentBottomSheetStyle</item>
+    </style>
+
+    <style name="TransparentBottomSheetStyle" parent="Widget.Material3.BottomSheet">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
 </resources>

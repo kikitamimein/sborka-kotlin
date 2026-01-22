@@ -126,11 +126,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun getFolderName(uriString: String?): String {
+        if (uriString.isNullOrEmpty()) return "нет"
+        return try {
+            val uri = Uri.parse(uriString)
+            DocumentFile.fromTreeUri(this, uri)?.name ?: "нет"
+        } catch (e: Exception) {
+            "ошибка"
+        }
+    }
+
     private fun showSettingsDialog() {
         val options = arrayOf(
             "Выбрать файл для сборки",
-            "Выбрать папку Вход (${DocumentFile.fromTreeUri(this, Uri.parse(prefsManager.inputFolderUri ?: ""))?.name ?: "нет"})",
-            "Выбрать папку Выход (${DocumentFile.fromTreeUri(this, Uri.parse(prefsManager.outputFolderUri ?: ""))?.name ?: "нет"})",
+            "Выбрать папку Вход (${getFolderName(prefsManager.inputFolderUri)})",
+            "Выбрать папку Выход (${getFolderName(prefsManager.outputFolderUri)})",
             "Настройки принтера (${prefsManager.printerIp}:${prefsManager.printerPort})"
         )
         
