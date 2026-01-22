@@ -131,8 +131,10 @@ class AllItemsActivity : AppCompatActivity() {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val name: TextView = view.findViewById(R.id.productName)
-            val details: TextView = view.findViewById(R.id.productDetails)
-            val printBtn: View = view.findViewById(R.id.printButton)
+            val article: TextView = view.findViewById(R.id.productArticle)
+            val barcode: TextView = view.findViewById(R.id.productBarcode)
+            val location: TextView = view.findViewById(R.id.productLocation)
+            val clickArea: View = view.findViewById(R.id.productClickArea)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -143,8 +145,10 @@ class AllItemsActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
             holder.name.text = item.name
-            holder.details.text = "Арт: ${item.article} | ШК: ${item.barcode}\nМесто: ${item.location.ifEmpty { "---" }}"
-            holder.printBtn.setOnClickListener { onPrint(item) }
+            holder.article.text = "Арт: ${item.article}"
+            holder.barcode.text = "ШК: ${item.barcode}"
+            holder.location.text = "М: ${item.location.ifEmpty { "---" }}"
+            holder.clickArea.setOnClickListener { onPrint(item) }
         }
 
         override fun getItemCount() = items.size

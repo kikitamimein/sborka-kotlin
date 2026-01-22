@@ -8,44 +8,70 @@
     app:cardCornerRadius="12dp">
 
     <LinearLayout
+        android:id="@+id/productClickArea"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="16dp"
-        android:gravity="center_vertical">
+        android:background="?attr/selectableItemBackground">
         
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/productName"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:text="Name"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            android:ellipsize="end" />
             
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
             <TextView
-                android:id="@+id/productName"
-                android:layout_width="match_parent"
+                android:id="@+id/productArticle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Name"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
+                android:text="Арт: 123"
+                android:textColor="@color/primary"
+                android:textSize="14sp"
                 android:textStyle="bold" />
-                
+
             <TextView
-                android:id="@+id/productDetails"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Article | Barcode"
+                android:text=" | "
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/productBarcode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ШК: 456"
+                android:textColor="@color/success"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" | "
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/productLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="M: 789"
+                android:textColor="@color/accent"
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </LinearLayout>
-        
-        <ImageButton
-            android:id="@+id/printButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_agenda"
-            android:tint="@color/primary" />
-            
     </LinearLayout>
 </androidx.cardview.widget.CardView>

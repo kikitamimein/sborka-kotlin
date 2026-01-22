@@ -62,19 +62,21 @@ object PrinterService {
 
                 val centerX = 220
 
-                // 1. Top description - BLOCK for wrap, Alignment 1 = Center
-                tspl.append("BLOCK 10,10,420,65,\"1\",0,1,1,2,1,\"$description\"\r\n")
+                // 1. Top description - exactly 30 dots
+                // X=10, Y=5, Width=420, Height=30, Font="1", Rotation=0, X-scale=1, Y-scale=1, Space=1, Alignment=1 (Center)
+                tspl.append("BLOCK 10,5,420,30,\"1\",0,1,1,1,1,\"$description\"\r\n")
 
                 if (barcode.isNotEmpty()) {
-                    // 2. Middle Barcode
-                    tspl.append("BARCODE 220,85,\"128\",160,0,0,3,6,2,\"$barcode\"\r\n")
+                    // 2. Middle Barcode - maximized height
+                    // Y from 40 to 250 (Height 210)
+                    tspl.append("BARCODE 220,40,\"128\",210,0,0,3,6,2,\"$barcode\"\r\n")
                     
-                    // 3. Barcode digits
-                    tspl.append("TEXT 220,255,\"2\",0,1,1,2,\"$barcode\"\r\n")
+                    // 3. Barcode digits - 2x larger (Scale 2,2)
+                    tspl.append("TEXT 220,255,\"2\",0,2,2,2,\"$barcode\"\r\n")
                 }
 
-                // 4. Bottom Article
-                tspl.append("TEXT 220,300,\"1\",0,1,1,2,\"Арт: $article\"\r\n")
+                // 4. Bottom Article - bottom area (dots 300+)
+                tspl.append("TEXT 220,305,\"1\",0,1,1,2,\"Арт: $article\"\r\n")
 
                 tspl.append("PRINT 1,1\r\n")
 
