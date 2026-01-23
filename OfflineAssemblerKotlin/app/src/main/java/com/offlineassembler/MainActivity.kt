@@ -62,12 +62,14 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupUI() {
+        // Old settings button hidden
         binding.settingsButton.setOnClickListener {
             showSettingsDialog()
         }
         
-        binding.selectFolderButton.setOnClickListener {
-            inputFolderLauncher.launch(null)
+        // New main settings button calls same dialog
+        binding.mainSettingsButton.setOnClickListener {
+            showSettingsDialog()
         }
         
         binding.continueSessionButton.setOnClickListener {
@@ -91,9 +93,8 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun refreshFileList() {
-        // Updated: only update folder select button visibility
+        // selectFolderButton removed, nothing to toggle
         val inputUriString = prefsManager.inputFolderUri
-        binding.selectFolderButton.visibility = if (inputUriString == null) View.VISIBLE else View.GONE
         
         // Update subtitle to show selected folder info if any
         if (inputUriString != null) {

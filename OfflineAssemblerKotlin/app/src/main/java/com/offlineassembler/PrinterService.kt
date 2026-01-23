@@ -20,11 +20,26 @@ object PrinterService {
         val dialog = BottomSheetDialog(context, R.style.TransparentBottomSheetDialog)
         val dialogView = LayoutInflater.from(context).inflate(R.layout.layout_print_confirmation, null)
         
+        var count = 1
+        val countText = dialogView.findViewById<TextView>(R.id.printCount)
+        
         dialogView.findViewById<TextView>(R.id.itemName).text = item.name
         dialogView.findViewById<TextView>(R.id.itemBarcode).text = "ШК: ${item.barcode}"
         
+        dialogView.findViewById<View>(R.id.minusButton).setOnClickListener {
+            if (count > 1) {
+                count--
+                countText.text = count.toString()
+            }
+        }
+
+        dialogView.findViewById<View>(R.id.plusButton).setOnClickListener {
+            count++
+            countText.text = count.toString()
+        }
+
         dialogView.findViewById<View>(R.id.printConfirmButton).setOnClickListener {
-            printBarcode(context, item)
+            printBarcode(context, item, count)
             dialog.dismiss()
         }
         
@@ -32,7 +47,7 @@ object PrinterService {
         dialog.show()
     }
 
-    private fun printBarcode(context: Context, item: AssemblyItem) {
+    private fun printBarcode(context: Context, item: AssemblyItem, quantity: Int = 1) {
         val prefs = PrefsManager(context)
         val ip = prefs.printerIp
         val port = prefs.printerPort
@@ -78,7 +93,7 @@ object PrinterService {
                 // 4. Bottom Article - bottom area (dots 300+)
                 tspl.append("TEXT 220,305,\"1\",0,1,1,2,\"Арт: $article\"\r\n")
 
-                tspl.append("PRINT 1,1\r\n")
+                tspl.append("PRINT $quantity,1\r\n")
 
                 outputStream.write(tspl.toString().toByteArray(Charsets.UTF_8))
                 outputStream.flush()

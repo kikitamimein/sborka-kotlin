@@ -37,6 +37,9 @@ class ScannerActivity : AppCompatActivity() {
     private var currentItemIndex: Int = -1
     
     private val scanner: BarcodeScanner = BarcodeScanning.getClient()
+    
+    // Add ProductDatabase for search mode
+    private lateinit var db: com.offlineassembler.data.ProductDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +48,7 @@ class ScannerActivity : AppCompatActivity() {
 
         sessionManager = SessionManager(this)
         session = sessionManager.loadSession()
+        db = com.offlineassembler.data.ProductDatabase(this) // Init DB
 
         if (session == null && !intent.getBooleanExtra("SEARCH_MODE", false)) {
             Toast.makeText(this, "Сессия не найдена", Toast.LENGTH_SHORT).show()
@@ -150,9 +154,39 @@ class ScannerActivity : AppCompatActivity() {
 
     private fun onBarcodeScanned(barcode: String) {
         if (intent.getBooleanExtra("SEARCH_MODE", false)) {
-            val data = Intent().apply { putExtra("SCAN_RESULT", barcode) }
-            setResult(RESULT_OK, data)
-            finish()
+            val product = db.search(barcode).firstOrNull { it.barcode == barcode }
+            if (product != null) {
+                // Determine color - simpler logic for search mode
+                binding.scanFrame.setBackgroundResource(R.drawable.bg_scan_frame_white) // Or custom color?
+                
+                // Show info
+                binding.scanInfoCard.visibility = View.VISIBLE
+                binding.itemName.text = product.name
+                binding.itemBarcode.text = product.barcode
+                binding.itemQuantity.text = "Место: ${product.location}"
+                
+                // Allow printing
+                val item = AssemblyItem(
+                    article = product.article,
+                    name = product.name,
+                    barcode = product.barcode,
+                    quantity = 0 // Not relevant
+                )
+                
+                binding.itemName.setOnClickListener {
+                    PrinterService.showPrintConfirmation(binding.root, item)
+                }
+                binding.itemBarcode.setOnClickListener {
+                    PrinterService.showPrintConfirmation(binding.root, item)
+                }
+                binding.scanInfoCard.setOnClickListener {
+                     PrinterService.showPrintConfirmation(binding.root, item)
+                }
+                
+            } else {
+                Toast.makeText(this, "Товар не найден", Toast.LENGTH_SHORT).show()
+                binding.scanInfoCard.visibility = View.GONE
+            }
             return
         }
 
