@@ -157,13 +157,16 @@ class ScannerActivity : AppCompatActivity() {
             val product = db.search(barcode).firstOrNull { it.barcode == barcode }
             if (product != null) {
                 // Determine color - simpler logic for search mode
-                binding.scanFrame.setBackgroundResource(R.drawable.bg_scan_frame_white) // Or custom color?
+                binding.scanOverlay.setBackgroundResource(R.drawable.bg_scan_frame_white)
                 
                 // Show info
-                binding.scanInfoCard.visibility = View.VISIBLE
+                binding.itemCard.visibility = View.VISIBLE
                 binding.itemName.text = product.name
-                binding.itemBarcode.text = product.barcode
-                binding.itemQuantity.text = "Место: ${product.location}"
+                binding.itemBarcode.text = "ШК: ${product.barcode}"
+                binding.itemLocation.text = "Место: ${product.location}"
+                // Hide irrelevant fields for search mode if needed, or re-purpose
+                binding.itemQuantity.visibility = View.GONE
+                binding.addButton.visibility = View.GONE
                 
                 // Allow printing
                 val item = AssemblyItem(
@@ -179,13 +182,13 @@ class ScannerActivity : AppCompatActivity() {
                 binding.itemBarcode.setOnClickListener {
                     PrinterService.showPrintConfirmation(binding.root, item)
                 }
-                binding.scanInfoCard.setOnClickListener {
+                binding.itemCard.setOnClickListener {
                      PrinterService.showPrintConfirmation(binding.root, item)
                 }
                 
             } else {
                 Toast.makeText(this, "Товар не найден", Toast.LENGTH_SHORT).show()
-                binding.scanInfoCard.visibility = View.GONE
+                binding.itemCard.visibility = View.GONE
             }
             return
         }
