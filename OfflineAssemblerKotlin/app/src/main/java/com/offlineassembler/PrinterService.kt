@@ -20,26 +20,26 @@ object PrinterService {
         val dialog = BottomSheetDialog(context, R.style.TransparentBottomSheetDialog)
         val dialogView = LayoutInflater.from(context).inflate(R.layout.layout_print_confirmation, null)
         
-        var count = 1
-        val countText = dialogView.findViewById<TextView>(R.id.printCount)
+        val countInput = dialogView.findViewById<android.widget.EditText>(R.id.printCount)
         
         dialogView.findViewById<TextView>(R.id.itemName).text = item.name
         dialogView.findViewById<TextView>(R.id.itemBarcode).text = "ШК: ${item.barcode}"
         
         dialogView.findViewById<View>(R.id.minusButton).setOnClickListener {
-            if (count > 1) {
-                count--
-                countText.text = count.toString()
+            val current = countInput.text.toString().toIntOrNull() ?: 1
+            if (current > 1) {
+                countInput.setText((current - 1).toString())
             }
         }
 
         dialogView.findViewById<View>(R.id.plusButton).setOnClickListener {
-            count++
-            countText.text = count.toString()
+            val current = countInput.text.toString().toIntOrNull() ?: 1
+            countInput.setText((current + 1).toString())
         }
 
         dialogView.findViewById<View>(R.id.printConfirmButton).setOnClickListener {
-            printBarcode(context, item, count)
+            val quantity = countInput.text.toString().toIntOrNull() ?: 1
+            printBarcode(context, item, quantity)
             dialog.dismiss()
         }
         

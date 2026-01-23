@@ -65,15 +65,17 @@
                 android:insetBottom="0dp"
                 app:strokeColor="@color/text_secondary"/>
 
-            <TextView
+            <EditText
                 android:id="@+id/printCount"
                 android:layout_width="80dp"
-                android:layout_height="wrap_content"
+                android:layout_height="60dp"
                 android:text="1"
-                android:textSize="32sp"
+                android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
                 android:gravity="center"
+                android:inputType="number"
+                android:background="@android:color/transparent"
                 android:layout_marginHorizontal="16dp" />
 
             <com.google.android.material.button.MaterialButton
