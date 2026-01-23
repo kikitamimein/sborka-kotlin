@@ -161,10 +161,21 @@ class ScannerActivity : AppCompatActivity() {
                 
                 // Show info
                 binding.itemCard.visibility = View.VISIBLE
+                
                 binding.itemName.text = product.name
+                
+                // Article (Blue)
+                binding.itemArticle.visibility = View.VISIBLE
+                binding.itemArticle.text = "Арт: ${product.article}"
+                
+                // Barcode (Green)
                 binding.itemBarcode.text = "ШК: ${product.barcode}"
+                binding.itemBarcode.setTextColor(ContextCompat.getColor(this, R.color.success))
+                
+                // Location (Accent/Orange)
                 binding.itemLocation.text = "Место: ${product.location}"
-                // Hide irrelevant fields for search mode if needed, or re-purpose
+                
+                // Hide irrelevant fields
                 binding.itemQuantity.visibility = View.GONE
                 binding.addButton.visibility = View.GONE
                 
@@ -173,18 +184,16 @@ class ScannerActivity : AppCompatActivity() {
                     article = product.article,
                     name = product.name,
                     barcode = product.barcode,
-                    quantity = 0 // Not relevant
+                    quantity = 0 
                 )
                 
+                // Only name triggers print
                 binding.itemName.setOnClickListener {
                     PrinterService.showPrintConfirmation(binding.root, item)
                 }
-                binding.itemBarcode.setOnClickListener {
-                    PrinterService.showPrintConfirmation(binding.root, item)
-                }
-                binding.itemCard.setOnClickListener {
-                     PrinterService.showPrintConfirmation(binding.root, item)
-                }
+                // Clear other listeners just in case
+                binding.itemBarcode.setOnClickListener(null)
+                binding.itemCard.setOnClickListener(null)
                 
             } else {
                 Toast.makeText(this, "Товар не найден", Toast.LENGTH_SHORT).show()

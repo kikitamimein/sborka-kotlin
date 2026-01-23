@@ -91,13 +91,16 @@
                 android:ellipsize="end" />
 
             <TextView
-                android:id="@+id/itemLocation"
+                android:id="@+id/itemArticle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Место: A-12-3"
-                android:textColor="@color/accent"
-                android:textSize="20sp" />
+                android:text="Арт: ..."
+                android:textColor="@color/primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -124,6 +127,15 @@
                     android:textSize="28sp"
                     android:textStyle="bold" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/itemLocation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Место: A-12-3"
+                android:textColor="@color/accent"
+                android:textSize="20sp" />
 
             <Button
                 android:id="@+id/addButton"
